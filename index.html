@@ -1,0 +1,2211 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Raiz</title>
+<style>
+  html, body { margin: 0; padding: 0; background: #F6F5F0; }
+  #root { min-height: 100vh; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<div id="erro-visivel" style="display:none; position:fixed; bottom:0; left:0; right:0; background:#C1694F; color:#fff; padding:16px; font-family:monospace; font-size:12px; white-space:pre-wrap; max-height:40vh; overflow-y:auto; z-index:9999;"></div>
+<script>
+  window.addEventListener('error', function (e) {
+    const box = document.getElementById('erro-visivel');
+    box.style.display = 'block';
+    box.innerText = 'ERRO: ' + (e.message || 'desconhecido') +
+      '\narquivo: ' + (e.filename || '?') +
+      '\nlinha: ' + (e.lineno || '?') +
+      (e.error && e.error.stack ? '\n\n' + e.error.stack : '');
+  });
+</script>
+
+<!-- Supabase (mesmo padrão CDN que você já usa no Terra & Safra) -->
+<script crossorigin="anonymous" src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script>
+  // ATENÇÃO: troque pelas suas credenciais reais (Project Settings > API)
+  const SUPABASE_URL = 'https://kzcwnsnapgpshxfzimlp.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt6Y3duc25hcGdwc2h4ZnppbWxwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUwOTQ1NzAsImV4cCI6MjEwMDY3MDU3MH0.1Qk-ZxWX2GNz4N9H_Ha9DbebPlJwI1LK0ZXkJPgLO9Q';
+  window.db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+</script>
+
+<!-- React + Babel, sem precisar de Node/npm/Vite -->
+<script crossorigin="anonymous" src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
+<script crossorigin="anonymous" src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
+<script crossorigin="anonymous" src="https://cdn.jsdelivr.net/npm/@babel/standalone/babel.min.js"></script>
+
+<script type="text/plain" id="app-source">
+// ============================================================================
+// Substitutos simples de ícone (SVG inline), no lugar do pacote lucide-react —
+// mesma API (size, color, strokeWidth), pra nenhum componente abaixo precisar mudar
+// ============================================================================
+function Icone({ children, size = 16, color = 'currentColor', strokeWidth = 2, style, ...props }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" style={style} {...props}>{children}</svg>;
+}
+const Lock = (p) => <Icone {...p}><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></Icone>;
+const Plus = (p) => <Icone {...p}><path d="M12 5v14M5 12h14"/></Icone>;
+const Check = (p) => <Icone {...p}><path d="M20 6 9 17l-5-5"/></Icone>;
+const ShoppingCart = (p) => <Icone {...p}><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></Icone>;
+const CreditCard = (p) => <Icone {...p}><rect x="1" y="4" width="22" height="16" rx="2"/><path d="M1 10h22"/></Icone>;
+const WalletIcon = (p) => <Icone {...p}><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></Icone>;
+const HomeIcon = (p) => <Icone {...p}><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/><path d="M9 22V12h6v10"/></Icone>;
+const Sprout = (p) => <Icone {...p}><path d="M7 20h10M12 20v-8"/><path d="M12 12C7 12 5 8 5 4c4 0 7 2 7 8Z"/><path d="M12 12c5 0 7-4 7-8-4 0-7 2-7 8Z"/></Icone>;
+const Wrench = (p) => <Icone {...p}><path d="M14.7 6.3a4 4 0 1 1-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 1 5.4-5.4Z"/></Icone>;
+const TrendingUp = (p) => <Icone {...p}><path d="M22 7 13.5 15.5 8.5 10.5 2 17"/><path d="M16 7h6v6"/></Icone>;
+const Receipt = (p) => <Icone {...p}><path d="M4 2h16v20l-3-2-3 2-3-2-3 2-3-2-1 2Z"/><path d="M8 7h8M8 11h8M8 15h5"/></Icone>;
+const Target = (p) => <Icone {...p}><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></Icone>;
+const Sparkles = (p) => <Icone {...p}><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2 2M16 16l2 2M6 18l2-2M16 8l2-2"/></Icone>;
+const Zap = (p) => <Icone {...p}><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8Z"/></Icone>;
+const Heart = (p) => <Icone {...p}><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8Z"/></Icone>;
+const GraduationCap = (p) => <Icone {...p}><path d="M22 10 12 5 2 10l10 5 10-5Z"/><path d="M6 12v5c0 1.5 3 3 6 3s6-1.5 6-3v-5"/></Icone>;
+const ShoppingBag = (p) => <Icone {...p}><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18M16 10a4 4 0 0 1-8 0"/></Icone>;
+const Dog = (p) => <Icone {...p}><path d="M10 5.2C8 4 6 5 6 7c-2 0-3 2-3 4 0 3 2 5 4 5h10c2 0 4-2 4-5 0-2-1-4-3-4 0-2-2-3-4-1.8"/><circle cx="9" cy="10" r="0.5"/><circle cx="15" cy="10" r="0.5"/></Icone>;
+const Plane = (p) => <Icone {...p}><path d="M2 12h20M12 2c2 3 3 7 3 10s-1 7-3 10c-2-3-3-7-3-10s1-7 3-10Z"/></Icone>;
+const PiggyBank = (p) => <Icone {...p}><path d="M11 5a6 6 0 0 1 6 6v1l2 2v3h-2v2h-3v-2H10v2H7v-3l-1-1a6 6 0 0 1 5-8Z"/><circle cx="15" cy="10" r="0.5"/></Icone>;
+const Fuel = (p) => <Icone {...p}><path d="M3 22V6a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16M2 22h11"/><path d="M14 9h2l3 3v6a2 2 0 0 1-4 0v-1"/></Icone>;
+const Car = (p) => <Icone {...p}><path d="M5 17h14M5 17a2 2 0 1 1-4 0 2 2 0 0 1 4 0Zm14 0a2 2 0 1 1-4 0 2 2 0 0 1 4 0Z"/><path d="M3 17V11l2-5h10l4 5v6"/></Icone>;
+const UtensilsCrossed = (p) => <Icone {...p}><path d="M16 2v20M8 2v6a2 2 0 0 0 4 0V2M16 12c2 0 4-2 4-5V2"/></Icone>;
+const Camera = (p) => <Icone {...p}><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1Z"/><circle cx="12" cy="14" r="3.5"/></Icone>;
+const Copy = (p) => <Icone {...p}><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></Icone>;
+const MessageCircle = (p) => <Icone {...p}><path d="M21 12a8.5 8.5 0 0 1-12.4 7.5L3 21l1.5-5.6A8.5 8.5 0 1 1 21 12Z"/></Icone>;
+const ArrowRight = (p) => <Icone {...p}><path d="M5 12h14M13 6l6 6-6 6"/></Icone>;
+const Settings = (p) => <Icone {...p}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6V21a2 2 0 1 1-4 0v-.2a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.6-1H3a2 2 0 1 1 0-4h.2a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.6V3a2 2 0 1 1 4 0v.2a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.6 1H21a2 2 0 1 1 0 4h-.2a1.7 1.7 0 0 0-1.5 1Z"/></Icone>;
+const Info = (p) => <Icone {...p}><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></Icone>;
+const AlertCircle = (p) => <Icone {...p}><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></Icone>;
+const ShieldCheck = (p) => <Icone {...p}><path d="M12 2 4 5v6c0 5 3.5 8.5 8 10 4.5-1.5 8-5 8-10V5Z"/><path d="m9 12 2 2 4-4"/></Icone>;
+const Mail = (p) => <Icone {...p}><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 6 10-6"/></Icone>;
+const X = (p) => <Icone {...p}><path d="M18 6 6 18M6 6l12 12"/></Icone>;
+const Trash2 = (p) => <Icone {...p}><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/><path d="M10 11v6M14 11v6"/></Icone>;
+
+// Hooks do React ficam disponíveis direto (sem import), pois carregamos React global via CDN
+const { useState, useEffect, useRef, useMemo } = React;
+
+
+const primary = '#0E4F45';
+const primaryDeep = '#0A3A32';
+const primaryTint = '#DCEEE9';
+const lucas = '#3D5A80';
+const lucasTint = '#E4EAF1';
+const marina = '#C1694F';
+const marinaTint = '#F5E6DF';
+const gold = '#C9A46A';
+const bg = '#F6F5F0';
+const ink = '#1E2B27';
+const muted = '#7C8F8C';
+
+const fmt = (v) => Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+// Campo de dinheiro — formata como R$ 1.234,56 enquanto a pessoa digita, guarda o número puro por dentro
+function InputDinheiro({ value, onChange, placeholder, style }) {
+  const exibir = value === '' || value === null || value === undefined ? '' : fmt(value);
+  const handleChange = (e) => {
+    const digitos = e.target.value.replace(/\D/g, '');
+    if (digitos === '') { onChange(''); return; }
+    onChange((Number(digitos) / 100).toString());
+  };
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', border: '1px solid rgba(14,79,69,0.15)', borderRadius: 12, padding: '10px 14px', ...style }}>
+      <span style={{ fontSize: 13, color: '#96897A', marginRight: 4 }}>R$</span>
+      <input inputMode="numeric" value={exibir} onChange={handleChange} placeholder={placeholder || '0,00'}
+        style={{ border: 'none', outline: 'none', width: '100%', fontSize: 13, fontFamily: 'inherit' }} />
+    </div>
+  );
+}
+
+
+const triggerHaptic = () => {
+  if (navigator.vibrate) {
+    navigator.vibrate(12); // Vibração discreta e satisfatória
+  }
+};
+
+// Ruído sutil pra dar textura de material aos cards hero (premium, não flat)
+const noiseUrl = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E";
+
+function useCountUp(target, duration = 1100, decimals = 2) {
+  const [value, setValue] = useState(0);
+  useEffect(() => {
+    let raf, start;
+    const step = (ts) => {
+      if (!start) start = ts;
+      const p = Math.min((ts - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - p, 3);
+      setValue(target * eased);
+      if (p < 1) raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [target]);
+  return value.toFixed(decimals);
+}
+
+function useMounted(delay = 60) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { const t = setTimeout(() => setMounted(true), delay); return () => clearTimeout(t); }, []);
+  return mounted;
+}
+
+function TextoPrivado({ visivel, texto, valor }) {
+  if (visivel) return <span>{texto} - R$ {fmt(valor)}</span>;
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+      <span style={{ filter: 'blur(4px)', userSelect: 'none', opacity: 0.7 }}>R$ {fmt(valor)}</span>
+      <span style={{ fontSize: 10, background: 'rgba(0,0,0,0.06)', padding: '2px 6px', borderRadius: 6 }}>🔒 Oculto por privacidade</span>
+    </div>
+  );
+}
+
+const feed = [
+  { id: 1, autor: 'lucas', desc: 'Mercado Pago', sub: 'Alimentação', valor: 250.50, data: 'hoje', icon: ShoppingCart, appColor: '#00AAFF', visivel: true },
+  { id: 2, autor: 'marina', desc: 'Uber', sub: 'Transporte', valor: 65.80, data: 'hoje', icon: Car, appColor: '#1A1A1A', visivel: true },
+  { id: 3, autor: 'lucas', desc: 'Restaurante', sub: 'Lazer', valor: 110.00, data: 'ontem', icon: UtensilsCrossed, appColor: primary, visivel: true },
+  { id: 4, autor: 'marina', desc: 'Gasto pessoal de Marina', sub: 'Privado', valor: 95.00, data: 'ontem', icon: CreditCard, appColor: marina, visivel: false },
+];
+const autorCor = { lucas: { cor: lucas, tint: lucasTint }, marina: { cor: marina, tint: marinaTint }, conjunto: { cor: primary, tint: primaryTint } };
+
+const patrimonio = [
+  { id: 1, nome: '6 bezerros para cria', categoria: 'Pecuária', icon: Sprout, investido: 9000, atual: 10800, data: 'Mar 2026' },
+  { id: 2, nome: 'Trator Valtra A750', categoria: 'Equipamento', icon: Wrench, investido: 185000, atual: 198500, data: 'Jan 2026' },
+  { id: 3, nome: 'Sítio Boa Vista — 4ha', categoria: 'Terra', icon: HomeIcon, investido: 210000, atual: 245000, data: 'Nov 2025' },
+];
+
+// Dataset realista pro casal — 2 semanas de uso, categorias fixa/variável/sazonal, privacidade configurável
+const categoriaIcon = {
+  'Moradia': HomeIcon, 'Alimentação': ShoppingCart, 'Transporte': Fuel, 'Saúde': Heart,
+  'Lazer': Sparkles, 'Presentes': ShoppingBag, 'Assinaturas': Zap, 'Educação': GraduationCap,
+  'Vestuário': ShoppingBag, 'Pets': Dog, 'Sazonal': Plane, 'Investimento': PiggyBank, 'Receita fixa': WalletIcon,
+};
+
+const lancamentosCompletos = [
+  { id: 1, data: '2026-07-21', autor: 'marina', conta: 'itau', tipo: 'saida', desc: 'Reforma do quintal', valor: 1500.00, categoria: 'Moradia', grupo: 'Sazonal', visivel: true },
+  { id: 2, data: '2026-07-20', autor: 'lucas', conta: 'itau', tipo: 'entrada', desc: 'Salário', valor: 6800.00, categoria: 'Receita fixa', grupo: 'Receita', visivel: true },
+  { id: 3, data: '2026-07-20', autor: 'marina', conta: 'itau', tipo: 'entrada', desc: 'Salário', valor: 5400.00, categoria: 'Receita fixa', grupo: 'Receita', visivel: true },
+  { id: 4, data: '2026-07-19', autor: 'lucas', conta: 'nubank', tipo: 'saida', desc: 'Fatura cartão — diversos', valor: 890.40, categoria: 'Não categorizado', grupo: 'Variável', visivel: false },
+  { id: 5, data: '2026-07-19', autor: 'marina', conta: 'inter', tipo: 'saida', desc: 'Farmácia', valor: 89.30, categoria: 'Saúde', grupo: 'Variável', visivel: true },
+  { id: 6, data: '2026-07-18', autor: 'lucas', conta: 'nubank', tipo: 'saida', desc: 'Jantar surpresa', valor: 380.00, categoria: 'Presentes', grupo: 'Variável', visivel: false },
+  { id: 7, data: '2026-07-17', autor: 'marina', conta: 'inter', tipo: 'investimento', desc: 'Aporte Tesouro Selic', valor: 1200.00, categoria: 'Investimento', grupo: 'Investimento', visivel: true },
+  { id: 8, data: '2026-07-16', autor: 'lucas', conta: 'nubank', tipo: 'investimento', desc: 'Gado de corte — 8 cabeças', valor: 24000.00, categoria: 'Investimento', grupo: 'Investimento', visivel: true },
+  { id: 9, data: '2026-07-15', autor: 'marina', conta: 'inter', tipo: 'saida', desc: 'Ração e petshop', valor: 178.50, categoria: 'Pets', grupo: 'Variável', visivel: true },
+  { id: 10, data: '2026-07-14', autor: 'lucas', conta: 'nubank', tipo: 'saida', desc: 'Curso online', valor: 97.00, categoria: 'Educação', grupo: 'Fixa', visivel: false },
+  { id: 11, data: '2026-07-13', autor: 'marina', conta: 'inter', tipo: 'saida', desc: 'Roupas — Zara', valor: 480.00, categoria: 'Vestuário', grupo: 'Variável', visivel: false },
+  { id: 12, data: '2026-07-12', autor: 'conjunto', conta: 'itau', tipo: 'saida', desc: 'Sofá novo (2/12)', valor: 300.00, categoria: 'Moradia', grupo: 'Fixa', visivel: true },
+  { id: 13, data: '2026-07-11', autor: 'conjunto', conta: 'itau', tipo: 'saida', desc: 'IPVA — parcela 3/3', valor: 340.00, categoria: 'Sazonal', grupo: 'Sazonal', visivel: true },
+  { id: 14, data: '2026-07-10', autor: 'marina', conta: 'inter', tipo: 'saida', desc: 'Academia', valor: 129.90, categoria: 'Saúde', grupo: 'Fixa', visivel: false },
+  { id: 15, data: '2026-07-09', autor: 'lucas', conta: 'nubank', tipo: 'saida', desc: 'Combustível', valor: 260.00, categoria: 'Transporte', grupo: 'Variável', visivel: true },
+  { id: 16, data: '2026-07-08', autor: 'conjunto', conta: 'itau', tipo: 'saida', desc: 'Plano de saúde', valor: 410.00, categoria: 'Saúde', grupo: 'Fixa', visivel: true },
+  { id: 17, data: '2026-07-06', autor: 'conjunto', conta: 'itau', tipo: 'saida', desc: 'Mercado da semana', valor: 583.75, categoria: 'Alimentação', grupo: 'Variável', visivel: true },
+  { id: 18, data: '2026-07-03', autor: 'conjunto', conta: 'itau', tipo: 'saida', desc: 'Internet e streaming', valor: 149.90, categoria: 'Assinaturas', grupo: 'Fixa', visivel: true },
+  { id: 19, data: '2026-07-02', autor: 'conjunto', conta: 'itau', tipo: 'saida', desc: 'Água e luz', valor: 283.60, categoria: 'Moradia', grupo: 'Fixa', visivel: true },
+  { id: 20, data: '2026-07-01', autor: 'conjunto', conta: 'itau', tipo: 'saida', desc: 'Aluguel', valor: 2500.00, categoria: 'Moradia', grupo: 'Fixa', visivel: true },
+];
+
+const metas = [
+  { id: 1, nome: 'Entrada da casa própria', total: 180000, atual: 108000, aporteMedio: 5100, destaque: true },
+  { id: 2, nome: 'Reserva de emergência', total: 30000, atual: 22400, aporteMedio: 1200 },
+  { id: 3, nome: 'Viagem — 5 anos de casados', total: 12000, atual: 3400, aporteMedio: 480 },
+];
+
+// Carteira — cores reais de cada instituição, contas do casal já cadastradas
+const contas = [
+  { id: 'itau', nome: 'Itaú', dono: 'Conjunta', cor: '#EC7000', corTexto: '#fff', saldo: 10221.00, fatura: 1450.00, diaVenc: 8, limite: 12000 },
+  { id: 'nubank', nome: 'Nubank', dono: 'Lucas', cor: '#820AD1', corTexto: '#fff', saldo: 4820.30, fatura: 890.40, diaVenc: 15, limite: 8000 },
+  { id: 'inter', nome: 'Inter', dono: 'Marina', cor: '#FF7A00', corTexto: '#fff', saldo: 6100.50, fatura: 320.00, diaVenc: 20, limite: 6500 },
+];
+
+// Cada pessoa tem sua própria caixinha (reserva pras contas, rende em CDB) e colchão (excedente de meses fortes)
+const financeiroSeed = {
+  lucas: { percCaixinha: 20, rendaBase: 6000, caixinha: 1800, colchao: 900, entradaMesAtual: 6800 },
+  marina: { percCaixinha: 25, rendaBase: 4500, caixinha: 1350, colchao: 600, entradaMesAtual: 5400 },
+};
+
+function ProgressRing({ percent, size = 64, stroke = 7 }) {
+  const mounted = useMounted(300);
+  const r = (size - stroke) / 2, c = 2 * Math.PI * r;
+  return (
+    <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
+      <circle cx={size / 2} cy={size / 2} r={r} stroke="rgba(255,255,255,0.22)" strokeWidth={stroke} fill="none" />
+      <circle cx={size / 2} cy={size / 2} r={r} stroke="url(#goldgrad)" strokeWidth={stroke} fill="none" strokeLinecap="round"
+        strokeDasharray={c} strokeDashoffset={mounted ? c * (1 - percent / 100) : c}
+        style={{ transition: 'stroke-dashoffset 1.4s cubic-bezier(.22,1,.36,1)' }} />
+      <defs><linearGradient id="goldgrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stopColor="#fff" /><stop offset="100%" stopColor={gold} /></linearGradient></defs>
+    </svg>
+  );
+}
+
+function BlobEntradaSaida({ transacoes = [] }) {
+  const mounted = useMounted(200);
+  const entrada = transacoes.filter((t) => t.tipo === 'entrada').reduce((s, t) => s + Number(t.valor), 0);
+  const saida = transacoes.filter((t) => t.tipo === 'saida').reduce((s, t) => s + Number(t.valor), 0);
+  const total = entrada + saida;
+
+  if (total === 0) {
+    return (
+      <div className="glass" style={{ borderRadius: 22, padding: 22 }}>
+        <div style={{ fontSize: 12, fontWeight: 600, color: muted, letterSpacing: 0.4, marginBottom: 10 }}>ENTROU × SAIU</div>
+        <div style={{ fontSize: 13, color: muted, padding: '20px 0', textAlign: 'center' }}>Sem lançamentos ainda</div>
+      </div>
+    );
+  }
+
+  const pE = mounted ? (entrada / total) * 100 : 50, pS = mounted ? (saida / total) * 100 : 50;
+  const fmtK = (v) => (v >= 1000 ? `${(v / 1000).toFixed(1)}k` : `R$${v.toFixed(0)}`);
+  return (
+    <div className="glass" style={{ borderRadius: 22, padding: 22 }}>
+      <div style={{ fontSize: 12, fontWeight: 600, color: muted, letterSpacing: 0.4, marginBottom: 14 }}>ENTROU × SAIU</div>
+      <div style={{ display: 'flex', height: 76, borderRadius: 38, overflow: 'hidden' }}>
+        {entrada > 0 && (
+          <div style={{
+            width: `${pE}%`, background: `linear-gradient(135deg, ${primary}, #167A69)`, transition: 'width 1.1s cubic-bezier(.22,1,.36,1)',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#fff', borderRadius: saida > 0 ? '38px 14px 14px 38px' : '38px',
+          }}>
+            <span style={{ fontSize: 16, fontWeight: 700 }}>{fmtK(entrada)}</span>
+            <span style={{ fontSize: 9.5, opacity: 0.85 }}>entrou</span>
+          </div>
+        )}
+        {saida > 0 && (
+          <div style={{
+            width: `${pS}%`, background: `linear-gradient(135deg, ${marina}, #A6523B)`, transition: 'width 1.1s cubic-bezier(.22,1,.36,1)',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#fff', borderRadius: entrada > 0 ? '14px 38px 38px 14px' : '38px',
+          }}>
+            <span style={{ fontSize: 14, fontWeight: 700 }}>{fmtK(saida)}</span>
+            <span style={{ fontSize: 9.5, opacity: 0.85 }}>saiu</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Feed({ transacoes = [] }) {
+  return (
+    <div className="glass" style={{ borderRadius: 22, padding: 20 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 14 }}>
+        <span style={{ fontSize: 12, fontWeight: 600, color: muted, letterSpacing: 0.4 }}>ÚLTIMOS LANÇAMENTOS</span>
+        <span style={{ fontSize: 11.5, color: primary, fontWeight: 600, cursor: 'pointer' }}>ver tudo</span>
+      </div>
+      {transacoes.length === 0 && <div style={{ fontSize: 13, color: muted, padding: '10px 0' }}>Nenhum lançamento ainda — toque no + pra adicionar o primeiro.</div>}
+      <div className="feed-grid">
+        {transacoes.slice(0, 4).map((t) => {
+          const Icon = categoriaIcon[t.categoria] || CreditCard;
+          return (
+            <div key={t.id} className="feed-card" style={{
+              background: t.visivel ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.35)',
+              filter: t.visivel ? 'none' : 'saturate(0.6)',
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div style={{ width: 36, height: 36, borderRadius: '50%', background: tipoCor[t.tipo] || primary, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Icon size={16} color="#fff" />
+                </div>
+                {!t.visivel && <Lock size={11} color={muted} />}
+              </div>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 1 }}>{t.visivel ? t.descricao : 'Gasto pessoal'}</div>
+                <div style={{ fontSize: 10.5, color: muted, fontWeight: 600, marginBottom: 6 }}>{t.categoria || 'Geral'}</div>
+                {t.visivel
+                  ? <div style={{ fontSize: 14, fontWeight: 700 }}>R$ {fmt(t.valor)}</div>
+                  : <TextoPrivado visivel={false} texto="" valor={t.valor} />}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function HeroSaldo({ saldoReal = 0, metaPrincipal = null }) {
+  const saldo = useCountUp(saldoReal, 1300, 2);
+  const percent = metaPrincipal ? Math.min(100, (metaPrincipal.atual / metaPrincipal.total) * 100) : 0;
+  const falta = metaPrincipal ? Math.max(0, metaPrincipal.total - metaPrincipal.atual) : 0;
+  const meses = metaPrincipal && metaPrincipal.aporteMedio > 0 ? Math.ceil(falta / metaPrincipal.aporteMedio) : null;
+
+  return (
+    <div className="hero-card" style={{
+      borderRadius: 30, padding: '30px 28px', color: '#fff', position: 'relative', overflow: 'hidden',
+      background: `linear-gradient(155deg, ${primaryDeep} 0%, ${primary} 55%, #14685A 100%)`,
+    }}>
+      <div style={{ position: 'absolute', inset: 0, backgroundImage: `url("${noiseUrl}")`, opacity: 0.05, mixBlendMode: 'overlay', pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', top: -60, right: -60, width: 220, height: 220, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,255,255,0.10), transparent 70%)' }} />
+      <div style={{ fontSize: 12.5, opacity: 0.75, marginBottom: 6, fontWeight: 500, letterSpacing: 0.4 }}>SALDO LIVRE REAL</div>
+      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
+        <div className="voice hero-number">R$ {fmt(saldo)}</div>
+        {metaPrincipal && (
+          <div style={{ position: 'relative', width: 68, height: 68, flexShrink: 0 }}>
+            <ProgressRing percent={percent} size={68} stroke={7} />
+            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700 }}>{percent.toFixed(0)}%</div>
+          </div>
+        )}
+      </div>
+      <div style={{ fontSize: 12, opacity: 0.65, marginTop: 4, marginBottom: metaPrincipal ? 20 : 0 }}>já descontando contas do mês</div>
+      {metaPrincipal && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,0.13)', borderRadius: 16, padding: '12px 16px', backdropFilter: 'blur(4px)' }}>
+          <Target size={14} />
+          <span style={{ fontSize: 12.5 }}>
+            {metaPrincipal.nome} — {meses !== null ? <>faltam <b>{meses} {meses === 1 ? 'mês' : 'meses'}</b> no ritmo atual</> : 'defina um aporte médio pra ver a previsão'}
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CTAFlutuante() {
+  const [aberto, setAberto] = useState(false);
+  const [particulas, setParticulas] = useState([]);
+  const clicar = () => {
+    triggerHaptic();
+    setAberto((v) => !v);
+    const novas = Array.from({ length: 6 }, (_, i) => ({ id: Date.now() + i, angle: (i / 6) * 360 }));
+    setParticulas(novas);
+    setTimeout(() => setParticulas([]), 700);
+  };
+  return (
+    <div className="cta-wrap">
+      {particulas.map((p) => (
+        <span key={p.id} className="particle" style={{ '--angle': `${p.angle}deg` }} />
+      ))}
+      <button onClick={clicar} className="cta-btn" style={{ transform: aberto ? 'rotate(45deg)' : 'rotate(0deg)' }}>
+        <Plus size={26} color="#fff" />
+      </button>
+    </div>
+  );
+}
+
+function TelaPainel({ transacoes = [], saldoReal = 0, householdId }) {
+  const [metaPrincipal, setMetaPrincipal] = useState(null);
+  const [patrimonioTotal, setPatrimonioTotal] = useState(0);
+  const [carregandoExtra, setCarregandoExtra] = useState(true);
+
+  useEffect(() => {
+    Promise.all([
+      window.db.from('metas').select('*').eq('household_id', householdId).order('created_at', { ascending: true }).limit(1),
+      window.db.from('accounts').select('saldo').eq('household_id', householdId),
+      window.db.from('assets').select('atual').eq('household_id', householdId),
+    ]).then(([resMeta, resContas, resAtivos]) => {
+      const m = resMeta.data && resMeta.data[0];
+      setMetaPrincipal(m ? { nome: m.nome, total: Number(m.valor_total), atual: Number(m.valor_atual), aporteMedio: Number(m.aporte_medio) } : null);
+      const totalContas = (resContas.data || []).reduce((s, c) => s + Number(c.saldo || 0), 0);
+      const totalAtivos = (resAtivos.data || []).reduce((s, a) => s + Number(a.atual || 0), 0);
+      setPatrimonioTotal(totalContas + totalAtivos);
+      setCarregandoExtra(false);
+    });
+  }, [householdId]);
+
+  return (
+    <div className="content-grid">
+      <div className="col-main">
+        <HeroSaldo saldoReal={saldoReal} metaPrincipal={metaPrincipal} />
+        <div className="row-2col">
+          <BlobEntradaSaida transacoes={transacoes} />
+          <div className="only-desktop">
+            <div className="glass" style={{ borderRadius: 22, padding: 22, height: '100%' }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: muted, letterSpacing: 0.4, marginBottom: 10 }}>PATRIMÔNIO TOTAL</div>
+              <div className="voice" style={{ fontSize: 28, fontWeight: 500, color: ink }}>{carregandoExtra ? '...' : `R$ ${fmt(patrimonioTotal)}`}</div>
+              <div style={{ fontSize: 11.5, color: muted, marginTop: 4 }}>{patrimonioTotal === 0 && !carregandoExtra ? 'Nenhum ativo cadastrado ainda' : 'bancos + ativos reais'}</div>
+            </div>
+          </div>
+        </div>
+        <Feed transacoes={transacoes} />
+      </div>
+      <div className="col-side only-desktop">
+        <div className="glass" style={{ borderRadius: 22, padding: 22, marginBottom: 20 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10 }}>
+            <Sparkles size={14} color={gold} />
+            <span style={{ fontSize: 12, fontWeight: 600, color: muted, letterSpacing: 0.4 }}>PRÓXIMO MARCO</span>
+          </div>
+          <div style={{ fontSize: 13, lineHeight: 1.5, color: ink }}>Cadastre uma meta pra ver o progresso aqui (exemplo, ainda não conectado).</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TelaPatrimonio({ householdId }) {
+  const [ativos, setAtivos] = useState([]);
+  const [totalBanco, setTotalBanco] = useState(0);
+  const [carregando, setCarregando] = useState(true);
+  const [mostrarForm, setMostrarForm] = useState(false);
+  const [novo, setNovo] = useState({ nome: '', categoria: 'Pecuária', investido: '', atual: '' });
+  const [salvando, setSalvando] = useState(false);
+  const mounted = useMounted(200);
+
+  const buscarTudo = () => {
+    setCarregando(true);
+    Promise.all([
+      window.db.from('assets').select('*').eq('household_id', householdId).order('data_aquisicao', { ascending: false }),
+      window.db.from('accounts').select('saldo').eq('household_id', householdId),
+    ]).then(([resAtivos, resContas]) => {
+      setAtivos(resAtivos.data || []);
+      setTotalBanco((resContas.data || []).reduce((s, c) => s + Number(c.saldo || 0), 0));
+      setCarregando(false);
+    });
+  };
+
+  useEffect(() => { buscarTudo(); }, [householdId]);
+
+  const salvar = async () => {
+    if (!novo.nome || !novo.investido) return;
+    setSalvando(true);
+    const { error } = await window.db.from('assets').insert([{
+      household_id: householdId, nome: novo.nome, categoria: novo.categoria,
+      investido: Number(novo.investido), atual: Number(novo.atual) || Number(novo.investido),
+      data_aquisicao: new Date().toISOString().slice(0, 10),
+    }]);
+    if (error) { alert('Erro ao salvar: ' + error.message); setSalvando(false); return; }
+    setNovo({ nome: '', categoria: 'Pecuária', investido: '', atual: '' });
+    setMostrarForm(false);
+    setSalvando(false);
+    buscarTudo();
+  };
+
+  if (carregando) return <div style={{ padding: 40, textAlign: 'center', color: muted, fontSize: 13 }}>Carregando...</div>;
+
+  const totalReal = ativos.reduce((s, p) => s + Number(p.atual || 0), 0);
+  const total = totalBanco + totalReal;
+  const categoriasAtivo = ['Pecuária', 'Equipamento', 'Terra', 'Imóvel', 'Outro'];
+
+  return (
+    <div className="content-grid">
+      <div className="col-main">
+        <div className="hero-card" style={{ borderRadius: 30, padding: '28px 28px', color: '#fff', background: `linear-gradient(150deg, ${primary}, #4A5A2E)`, marginBottom: 24, position: 'relative', overflow: 'hidden' }}>
+          <div style={{ position: 'absolute', inset: 0, backgroundImage: `url("${noiseUrl}")`, opacity: 0.05, mixBlendMode: 'overlay' }} />
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <div style={{ fontSize: 12.5, opacity: 0.8, marginBottom: 4 }}>O QUE VOCÊS JÁ CONSTRUÍRAM</div>
+              <div className="voice hero-number">R$ {fmt(total)}</div>
+            </div>
+            <button onClick={() => setMostrarForm(!mostrarForm)} style={{ background: 'rgba(255,255,255,0.18)', border: 'none', color: '#fff', borderRadius: 20, padding: '9px 16px', fontSize: 12.5, fontWeight: 600, cursor: 'pointer' }}>
+              + Adicionar ativo
+            </button>
+          </div>
+          {total > 0 && (
+            <>
+              <div style={{ display: 'flex', height: 9, borderRadius: 5, overflow: 'hidden', marginTop: 18, marginBottom: 8 }}>
+                <div style={{ width: mounted ? `${(totalBanco / total) * 100}%` : '50%', background: lucas, transition: 'width 1.1s cubic-bezier(.22,1,.36,1)' }} />
+                <div style={{ width: mounted ? `${(totalReal / total) * 100}%` : '50%', background: marina, transition: 'width 1.1s cubic-bezier(.22,1,.36,1)' }} />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11.5, opacity: 0.9 }}>
+                <span>Bancos: R$ {fmt(totalBanco)}</span><span>Ativos reais: R$ {fmt(totalReal)}</span>
+              </div>
+            </>
+          )}
+        </div>
+
+        {mostrarForm && (
+          <div className="glass" style={{ borderRadius: 20, padding: 18, marginBottom: 20 }}>
+            <input value={novo.nome} onChange={(e) => setNovo({ ...novo, nome: e.target.value })} placeholder="Ex: 6 bezerros para cria"
+              style={{ width: '100%', border: '1px solid rgba(14,79,69,0.15)', borderRadius: 12, padding: '10px 14px', fontSize: 13, outline: 'none', marginBottom: 10, fontFamily: 'inherit', boxSizing: 'border-box' }} />
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
+              {categoriasAtivo.map((c) => (
+                <button key={c} onClick={() => setNovo({ ...novo, categoria: c })} style={{
+                  padding: '6px 12px', borderRadius: 10, border: `1px solid ${novo.categoria === c ? primary : 'rgba(14,79,69,0.15)'}`,
+                  background: novo.categoria === c ? primary : '#fff', color: novo.categoria === c ? '#fff' : ink, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                }}>{c}</button>
+              ))}
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+              <input type="number" value={novo.investido} onChange={(e) => setNovo({ ...novo, investido: e.target.value })} placeholder="Valor investido (R$)"
+                style={{ border: '1px solid rgba(14,79,69,0.15)', borderRadius: 12, padding: '10px 14px', fontSize: 13, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+              <input type="number" value={novo.atual} onChange={(e) => setNovo({ ...novo, atual: e.target.value })} placeholder="Valor atual (R$)"
+                style={{ border: '1px solid rgba(14,79,69,0.15)', borderRadius: 12, padding: '10px 14px', fontSize: 13, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+            </div>
+            <button onClick={salvar} disabled={salvando} style={{ width: '100%', background: primary, color: '#fff', border: 'none', borderRadius: 10, padding: '11px 0', fontSize: 13, fontWeight: 600, cursor: 'pointer', opacity: salvando ? 0.6 : 1 }}>
+              {salvando ? 'Salvando...' : 'Salvar ativo'}
+            </button>
+          </div>
+        )}
+
+        {ativos.length === 0 && !mostrarForm && (
+          <div className="glass" style={{ borderRadius: 20, padding: 40, textAlign: 'center' }}>
+            <TrendingUp size={26} color={muted} style={{ marginBottom: 10 }} />
+            <div style={{ fontSize: 13, color: muted }}>Nenhum ativo cadastrado ainda</div>
+          </div>
+        )}
+
+        <div className="patrimonio-grid">
+          {ativos.map((p) => {
+            const Icon = categoriaIcon[p.categoria] || TrendingUp;
+            const investido = Number(p.investido) || 1;
+            const valorizacao = (((Number(p.atual) - investido) / investido) * 100).toFixed(0);
+            const marco = valorizacao >= 25;
+            return (
+              <div key={p.id} className="glass patrimonio-card">
+                <Icon size={100} color={primary} style={{ position: 'absolute', top: -14, right: -24, opacity: 0.055 }} />
+                {marco && <div style={{ position: 'absolute', top: 14, right: 14, width: 22, height: 22, borderRadius: '50%', background: gold, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 6px rgba(201,164,106,0.5)' }}><span style={{ fontSize: 11 }}>★</span></div>}
+                <div style={{ fontSize: 10.5, color: muted, fontWeight: 600, letterSpacing: 0.4, marginBottom: 10 }}>{(p.categoria || '').toUpperCase()}</div>
+                <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 18, lineHeight: 1.35, maxWidth: '85%' }}>{p.nome}</div>
+                <div style={{ fontSize: 10.5, color: muted }}>Investido</div>
+                <div style={{ fontSize: 12.5, marginBottom: 10 }}>R$ {fmt(p.investido)}</div>
+                <div className="voice" style={{ fontSize: 21, fontWeight: 500 }}>R$ {fmt(p.atual)}</div>
+                <div style={{ fontSize: 11.5, color: gold, fontWeight: 600, marginTop: 2 }}>↗ {valorizacao >= 0 ? '+' : ''}{valorizacao}%</div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const tipoSinal = { entrada: '+', saida: '-', investimento: '+' };
+const tipoCor = { entrada: primary, saida: ink, investimento: gold };
+
+function TelaLancamentos({ transacoes = [], adicionarLancamento, editarLancamento, apagarLancamento }) {
+  const [filtro, setFiltro] = useState('todos');
+  const [busca, setBusca] = useState('');
+  const [mostrarForm, setMostrarForm] = useState(false);
+  const [editandoId, setEditandoId] = useState(null);
+  const [novo, setNovo] = useState({ descricao: '', valor: '', tipo: 'saida', categoria: 'Geral' });
+  const [salvando, setSalvando] = useState(false);
+
+  const filtrados = transacoes
+    .filter((l) => filtro === 'todos' || l.tipo === filtro)
+    .filter((l) => (l.descricao || '').toLowerCase().includes(busca.toLowerCase()));
+  const grupos = {};
+  filtrados.forEach((l) => { (grupos[l.data] = grupos[l.data] || []).push(l); });
+  const datasOrdenadas = Object.keys(grupos).sort((a, b) => b.localeCompare(a));
+  const dataFmt = (iso) => new Date(iso + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', weekday: 'short' });
+
+  const porCategoria = {};
+  transacoes.filter((l) => l.tipo === 'saida').forEach((l) => { const c = l.categoria || 'Geral'; porCategoria[c] = (porCategoria[c] || 0) + Number(l.valor); });
+  const categoriasTop = Object.entries(porCategoria).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  const maiorCategoria = categoriasTop[0]?.[1] || 1;
+
+  const filtros = [
+    { id: 'todos', label: 'Todos' }, { id: 'entrada', label: 'Entradas' },
+    { id: 'saida', label: 'Saídas' }, { id: 'investimento', label: 'Investimentos' },
+  ];
+
+  const abrirNovo = () => { setEditandoId(null); setNovo({ descricao: '', valor: '', tipo: 'saida', categoria: 'Geral' }); setMostrarForm(!mostrarForm); };
+  const abrirEdicao = (t) => { setEditandoId(t.id); setNovo({ descricao: t.descricao, valor: String(t.valor), tipo: t.tipo, categoria: t.categoria || 'Geral' }); setMostrarForm(true); };
+
+  const salvar = async () => {
+    if (!novo.descricao || !novo.valor) return;
+    setSalvando(true);
+    try {
+      if (editandoId) {
+        await editarLancamento(editandoId, { descricao: novo.descricao, valor: Number(novo.valor), tipo: novo.tipo, categoria: novo.categoria });
+      } else {
+        await adicionarLancamento({
+          descricao: novo.descricao, valor: Number(novo.valor), tipo: novo.tipo,
+          categoria: novo.categoria, grupo: 'Variável', visivel: true,
+          data: new Date().toISOString().slice(0, 10),
+        });
+      }
+      setNovo({ descricao: '', valor: '', tipo: 'saida', categoria: 'Geral' });
+      setMostrarForm(false);
+      setEditandoId(null);
+    } catch (erro) {
+      alert('Erro ao salvar: ' + erro.message);
+    }
+    setSalvando(false);
+  };
+
+  const apagar = async (id) => {
+    if (!confirm('Apagar esse lançamento?')) return;
+    try { await apagarLancamento(id); } catch (erro) { alert('Erro ao apagar: ' + erro.message); }
+  };
+
+  return (
+    <div className="content-grid">
+      <div className="col-main">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 18, flexWrap: 'wrap', gap: 10 }}>
+          <div>
+            <div className="voice" style={{ fontSize: 22, fontWeight: 500, marginBottom: 2 }}>Lançamentos</div>
+            <div style={{ fontSize: 13, color: muted }}>Dado real, direto do seu Supabase</div>
+          </div>
+          <button onClick={abrirNovo} style={{ background: primary, color: '#fff', border: 'none', borderRadius: 20, padding: '10px 18px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+            + Novo lançamento
+          </button>
+        </div>
+
+        {mostrarForm && (
+          <div className="glass" style={{ borderRadius: 20, padding: 18, marginBottom: 18 }}>
+            {editandoId && <div style={{ fontSize: 11.5, color: primary, fontWeight: 600, marginBottom: 10 }}>Editando lançamento</div>}
+            <input value={novo.descricao} onChange={(e) => setNovo({ ...novo, descricao: e.target.value })} placeholder="Descrição"
+              style={{ width: '100%', border: '1px solid rgba(14,79,69,0.15)', borderRadius: 12, padding: '10px 14px', fontSize: 13, outline: 'none', marginBottom: 10, fontFamily: 'inherit', boxSizing: 'border-box' }} />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+              <InputDinheiro value={novo.valor} onChange={(v) => setNovo({ ...novo, valor: v })} />
+              <input value={novo.categoria} onChange={(e) => setNovo({ ...novo, categoria: e.target.value })} placeholder="Categoria"
+                style={{ border: '1px solid rgba(14,79,69,0.15)', borderRadius: 12, padding: '10px 14px', fontSize: 13, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+            </div>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+              {['entrada', 'saida', 'investimento'].map((tp) => (
+                <button key={tp} onClick={() => setNovo({ ...novo, tipo: tp })} style={{
+                  padding: '7px 14px', borderRadius: 10, border: `1px solid ${novo.tipo === tp ? primary : 'rgba(14,79,69,0.15)'}`,
+                  background: novo.tipo === tp ? primary : '#fff', color: novo.tipo === tp ? '#fff' : ink, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                }}>{tp === 'saida' ? 'Saída' : tp === 'entrada' ? 'Entrada' : 'Investimento'}</button>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={salvar} disabled={salvando} style={{ flex: 1, background: primary, color: '#fff', border: 'none', borderRadius: 10, padding: '11px 0', fontSize: 13, fontWeight: 600, cursor: 'pointer', opacity: salvando ? 0.6 : 1 }}>
+                {salvando ? 'Salvando...' : editandoId ? 'Salvar alterações' : 'Salvar lançamento'}
+              </button>
+              {editandoId && (
+                <button onClick={() => { setMostrarForm(false); setEditandoId(null); }} style={{ background: 'rgba(14,79,69,0.06)', color: muted, border: 'none', borderRadius: 10, padding: '11px 18px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                  Cancelar
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
+          {filtros.map((f) => (
+            <button key={f.id} onClick={() => setFiltro(f.id)} style={{
+              padding: '8px 16px', borderRadius: 20, border: 'none', cursor: 'pointer', fontSize: 12.5, fontWeight: 600,
+              background: filtro === f.id ? primary : 'rgba(14,79,69,0.06)', color: filtro === f.id ? '#fff' : muted,
+            }}>{f.label}</button>
+          ))}
+        </div>
+
+        <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar por descrição..."
+          style={{ width: '100%', border: '1px solid rgba(14,79,69,0.12)', borderRadius: 14, padding: '11px 16px', fontSize: 13, outline: 'none', marginBottom: 24, fontFamily: 'inherit', boxSizing: 'border-box', background: '#fff' }} />
+
+        {datasOrdenadas.length === 0 && (
+          <div style={{ textAlign: 'center', padding: '40px 0', color: muted, fontSize: 13 }}>Nenhum lançamento ainda</div>
+        )}
+
+        {datasOrdenadas.map((dt) => (
+          <div key={dt} style={{ marginBottom: 20 }}>
+            <div style={{ fontSize: 11, color: muted, fontWeight: 600, letterSpacing: 0.5, marginBottom: 10, textTransform: 'uppercase' }}>{dataFmt(dt)}</div>
+            <div className="glass" style={{ borderRadius: 20, padding: '6px 8px' }}>
+              {grupos[dt].map((t, i) => {
+                const Icon = categoriaIcon[t.categoria] || CreditCard;
+                return (
+                  <div key={t.id} className="feedrow" style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 14px', borderRadius: 16,
+                    background: t.visivel ? 'transparent' : 'rgba(14,79,69,0.03)', filter: t.visivel ? 'none' : 'saturate(0.65)',
+                    borderBottom: i < grupos[dt].length - 1 ? '1px solid rgba(14,79,69,0.06)' : 'none',
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                      <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(14,79,69,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <Icon size={17} color={tipoCor[t.tipo] || primary} />
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 14, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                          {t.visivel ? t.descricao : 'Gasto pessoal'}
+                          {!t.visivel && <Lock size={11} color={muted} />}
+                        </div>
+                        <span style={{ fontSize: 11.5, color: muted }}>{t.categoria || 'Geral'}</span>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                        {t.visivel
+                          ? <div style={{ fontSize: 15, fontWeight: 600, color: tipoCor[t.tipo] }}>{tipoSinal[t.tipo]} R$ {fmt(t.valor)}</div>
+                          : <TextoPrivado visivel={false} texto="" valor={t.valor} />}
+                      </div>
+                      <button onClick={() => abrirEdicao(t)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 4, display: 'flex' }} title="Editar">
+                        <Settings size={14} color={muted} />
+                      </button>
+                      <button onClick={() => apagar(t.id)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', padding: 4, display: 'flex' }} title="Apagar">
+                        <Trash2 size={14} color="#C1694F" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="col-side only-desktop">
+        <div className="glass" style={{ borderRadius: 22, padding: 22 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: muted, letterSpacing: 0.4, marginBottom: 16 }}>POR CATEGORIA</div>
+          {categoriasTop.length === 0 && <div style={{ fontSize: 12, color: muted }}>Sem dados ainda</div>}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {categoriasTop.map(([nome, valor]) => (
+              <div key={nome}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, marginBottom: 6 }}>
+                  <span>{nome}</span><span style={{ fontWeight: 600 }}>R$ {fmt(valor)}</span>
+                </div>
+                <div style={{ height: 6, borderRadius: 4, background: 'rgba(14,79,69,0.08)', overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: `${(valor / maiorCategoria) * 100}%`, background: `linear-gradient(90deg, ${primary}, ${gold})`, borderRadius: 4 }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MetaCard({ m }) {
+  const percent = Math.min(100, (m.atual / m.total) * 100);
+  const falta = Math.max(0, m.total - m.atual);
+  const meses = m.aporteMedio > 0 ? Math.ceil(falta / m.aporteMedio) : 0;
+  const anos = Math.floor(meses / 12), mesesResto = meses % 12;
+  return (
+    <div className="glass" style={{ borderRadius: 24, padding: 24, position: 'relative', overflow: 'hidden' }}>
+      {m.destaque && <div style={{ position: 'absolute', inset: 0, backgroundImage: `url("${noiseUrl}")`, opacity: 0.03, mixBlendMode: 'overlay', pointerEvents: 'none' }} />}
+      <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 20 }}>{m.nome}</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+        <div style={{ position: 'relative', width: 84, height: 84, flexShrink: 0 }}>
+          <ProgressRing percent={percent} size={84} stroke={8} />
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 700, color: ink }}>{percent.toFixed(0)}%</div>
+        </div>
+        <div style={{ fontSize: 12 }}>
+          <div style={{ color: muted, marginBottom: 2 }}>Alcançado</div>
+          <div style={{ fontWeight: 600, marginBottom: 8, fontSize: 13.5 }}>R$ {fmt(m.atual)}</div>
+          <div style={{ color: muted, marginBottom: 2 }}>Meta</div>
+          <div style={{ fontWeight: 600, fontSize: 13.5 }}>R$ {fmt(m.total)}</div>
+        </div>
+      </div>
+      <div style={{ marginTop: 18, paddingTop: 14, borderTop: '1px solid rgba(14,79,69,0.08)', fontSize: 12.5, color: muted, lineHeight: 1.5 }}>
+        {percent >= 100 ? <span style={{ color: primary, fontWeight: 600 }}>Meta alcançada 🎉</span> : (
+          <>No ritmo atual (<b style={{ color: ink }}>R$ {fmt(m.aporteMedio)}/mês</b>), faltam <b style={{ color: ink }}>{meses} {meses === 1 ? 'mês' : 'meses'}</b>{anos > 0 && <> (~{anos}a{mesesResto > 0 ? ` ${mesesResto}m` : ''})</>}</>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function TelaCaixinhas({ householdId }) {
+  const [caixinhas, setCaixinhas] = useState([]);
+  const [contas, setContas] = useState([]);
+  const [carregando, setCarregando] = useState(true);
+  const [editandoId, setEditandoId] = useState(null);
+  const [novoValor, setNovoValor] = useState('');
+  const [novaTaxa, setNovaTaxa] = useState('');
+
+  const buscar = () => {
+    setCarregando(true);
+    Promise.all([
+      window.db.from('caixinhas_conta').select('*').eq('household_id', householdId),
+      window.db.from('accounts').select('id, nome, cor, dono').eq('household_id', householdId),
+    ]).then(([resCaixinhas, resContas]) => {
+      setCaixinhas(resCaixinhas.data || []);
+      setContas(resContas.data || []);
+      setCarregando(false);
+    });
+  };
+
+  useEffect(() => { buscar(); }, [householdId]);
+
+  const estimativaHoje = (c) => {
+    const dataRef = c.data_referencia ? new Date(c.data_referencia + 'T00:00:00') : new Date();
+    const dias = Math.max(0, (new Date() - dataRef) / (1000 * 60 * 60 * 24));
+    const taxa = Number(c.taxa_anual || 0) / 100;
+    return Number(c.valor || 0) * Math.pow(1 + taxa, dias / 365);
+  };
+
+  const abrirEdicao = (c) => { setEditandoId(c.id); setNovoValor(String(c.valor)); setNovaTaxa(String(c.taxa_anual ?? 10.5)); };
+
+  const salvarValorReal = async (id) => {
+    const { error } = await window.db.from('caixinhas_conta').update({
+      valor: Number(novoValor) || 0, taxa_anual: Number(novaTaxa) || 0, data_referencia: new Date().toISOString().slice(0, 10),
+    }).eq('id', id);
+    if (error) { alert('Erro ao salvar: ' + error.message); return; }
+    setEditandoId(null);
+    buscar();
+  };
+
+  const apagar = async (id) => {
+    if (!confirm('Apagar essa caixinha?')) return;
+    const { error } = await window.db.from('caixinhas_conta').delete().eq('id', id);
+    if (error) { alert('Erro ao apagar: ' + error.message); return; }
+    buscar();
+  };
+
+  if (carregando) return <div style={{ padding: 40, textAlign: 'center', color: muted, fontSize: 13 }}>Carregando...</div>;
+
+  const totalEstimado = caixinhas.reduce((s, c) => s + estimativaHoje(c), 0);
+
+  return (
+    <div className="content-grid">
+      <div className="col-main">
+        <div style={{ marginBottom: 4 }}>
+          <div className="voice" style={{ fontSize: 22, fontWeight: 500, marginBottom: 2 }}>Caixinhas</div>
+          <div style={{ fontSize: 13, color: muted }}>Reservas guardadas em cada conta, com estimativa de rendimento</div>
+        </div>
+
+        {caixinhas.length > 0 && (
+          <div className="glass" style={{ borderRadius: 20, padding: 18, marginTop: 16, marginBottom: 4 }}>
+            <div style={{ fontSize: 11.5, color: muted, fontWeight: 600, letterSpacing: 0.4, marginBottom: 4 }}>TOTAL ESTIMADO HOJE</div>
+            <div className="voice" style={{ fontSize: 26, fontWeight: 500 }}>R$ {fmt(totalEstimado)}</div>
+          </div>
+        )}
+
+        {caixinhas.length === 0 && (
+          <div className="glass" style={{ borderRadius: 20, padding: 40, textAlign: 'center', marginTop: 16 }}>
+            <PiggyBank size={26} color={muted} style={{ marginBottom: 10 }} />
+            <div style={{ fontSize: 13, color: muted }}>Nenhuma caixinha ainda — adicione uma dentro de uma conta, na Carteira</div>
+          </div>
+        )}
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 14, marginTop: 16 }}>
+          {caixinhas.map((c) => {
+            const conta = contas.find((ct) => ct.id === c.account_id);
+            const estimativa = estimativaHoje(c);
+            const diferenca = estimativa - Number(c.valor || 0);
+            const editando = editandoId === c.id;
+            return (
+              <div key={c.id} className="glass" style={{ borderRadius: 20, padding: 18 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <div style={{ width: 7, height: 7, borderRadius: '50%', background: conta?.cor || primary }} />
+                    <span style={{ fontSize: 11, color: muted }}>{conta?.nome || '—'} · {conta?.dono || '—'}</span>
+                  </div>
+                  <button onClick={() => apagar(c.id)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex' }}>
+                    <Trash2 size={13} color="#C1694F" />
+                  </button>
+                </div>
+                <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 10 }}>{c.nome}</div>
+
+                {!editando ? (
+                  <>
+                    <div style={{ fontSize: 10.5, color: muted, marginBottom: 2 }}>Estimativa hoje ({c.taxa_anual || 0}% a.a.)</div>
+                    <div className="voice" style={{ fontSize: 22, fontWeight: 500, marginBottom: 4 }}>R$ {fmt(estimativa)}</div>
+                    <div style={{ fontSize: 11, color: primary, marginBottom: 12 }}>+ R$ {fmt(diferenca)} desde {c.data_referencia}</div>
+                    <button onClick={() => abrirEdicao(c)} style={{ background: 'rgba(14,79,69,0.06)', border: 'none', color: primary, borderRadius: 10, padding: '7px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                      Atualizar valor real
+                    </button>
+                  </>
+                ) : (
+                  <div>
+                    <label style={{ fontSize: 11, color: muted, display: 'block', marginBottom: 4 }}>Valor real de hoje</label>
+                    <InputDinheiro value={novoValor} onChange={setNovoValor} style={{ marginBottom: 8 }} />
+                    <label style={{ fontSize: 11, color: muted, display: 'block', marginBottom: 4 }}>Taxa ao ano (%) — deixe como está se não souber</label>
+                    <input type="number" value={novaTaxa} onChange={(e) => setNovaTaxa(e.target.value)}
+                      style={{ width: '100%', border: '1px solid rgba(14,79,69,0.15)', borderRadius: 12, padding: '9px 12px', fontSize: 13, outline: 'none', marginBottom: 10, fontFamily: 'inherit', boxSizing: 'border-box' }} />
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button onClick={() => salvarValorReal(c.id)} style={{ flex: 1, background: primary, color: '#fff', border: 'none', borderRadius: 10, padding: '9px 0', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Salvar</button>
+                      <button onClick={() => setEditandoId(null)} style={{ background: 'rgba(14,79,69,0.06)', color: muted, border: 'none', borderRadius: 10, padding: '9px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Cancelar</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TelaMetas({ householdId }) {
+  const [metasReais, setMetasReais] = useState([]);
+  const [carregando, setCarregando] = useState(true);
+  const [mostrarForm, setMostrarForm] = useState(false);
+  const [novo, setNovo] = useState({ nome: '', valorTotal: '', valorAtual: '', aporteMedio: '' });
+  const [salvando, setSalvando] = useState(false);
+
+  const buscar = () => {
+    setCarregando(true);
+    window.db.from('metas').select('*').eq('household_id', householdId).order('created_at', { ascending: true })
+      .then(({ data }) => {
+        setMetasReais((data || []).map((m) => ({ id: m.id, nome: m.nome, total: Number(m.valor_total), atual: Number(m.valor_atual), aporteMedio: Number(m.aporte_medio) })));
+        setCarregando(false);
+      });
+  };
+
+  useEffect(() => { buscar(); }, [householdId]);
+
+  const salvar = async () => {
+    if (!novo.nome || !novo.valorTotal) return;
+    setSalvando(true);
+    const { error } = await window.db.from('metas').insert([{
+      household_id: householdId, nome: novo.nome, valor_total: Number(novo.valorTotal),
+      valor_atual: Number(novo.valorAtual) || 0, aporte_medio: Number(novo.aporteMedio) || 0,
+    }]);
+    if (error) { alert('Erro ao salvar: ' + error.message); setSalvando(false); return; }
+    setNovo({ nome: '', valorTotal: '', valorAtual: '', aporteMedio: '' });
+    setMostrarForm(false);
+    setSalvando(false);
+    buscar();
+  };
+
+  if (carregando) return <div style={{ padding: 40, textAlign: 'center', color: muted, fontSize: 13 }}>Carregando...</div>;
+
+  return (
+    <div className="content-grid">
+      <div className="col-main">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+          <div className="voice" style={{ fontSize: 22, fontWeight: 500 }}>Metas</div>
+          <button onClick={() => setMostrarForm(!mostrarForm)} style={{ background: primary, color: '#fff', border: 'none', borderRadius: 20, padding: '9px 16px', fontSize: 12.5, fontWeight: 600, cursor: 'pointer' }}>
+            + Nova meta
+          </button>
+        </div>
+
+        {mostrarForm && (
+          <div className="glass" style={{ borderRadius: 20, padding: 18, marginTop: 16, marginBottom: 16 }}>
+            <input value={novo.nome} onChange={(e) => setNovo({ ...novo, nome: e.target.value })} placeholder="Nome da meta (ex: Entrada da casa)"
+              style={{ width: '100%', border: '1px solid rgba(14,79,69,0.15)', borderRadius: 12, padding: '10px 14px', fontSize: 13, outline: 'none', marginBottom: 10, fontFamily: 'inherit', boxSizing: 'border-box' }} />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 10 }}>
+              <input type="number" value={novo.valorTotal} onChange={(e) => setNovo({ ...novo, valorTotal: e.target.value })} placeholder="Valor total"
+                style={{ border: '1px solid rgba(14,79,69,0.15)', borderRadius: 12, padding: '10px 14px', fontSize: 13, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+              <input type="number" value={novo.valorAtual} onChange={(e) => setNovo({ ...novo, valorAtual: e.target.value })} placeholder="Já alcançado"
+                style={{ border: '1px solid rgba(14,79,69,0.15)', borderRadius: 12, padding: '10px 14px', fontSize: 13, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+              <input type="number" value={novo.aporteMedio} onChange={(e) => setNovo({ ...novo, aporteMedio: e.target.value })} placeholder="Aporte/mês"
+                style={{ border: '1px solid rgba(14,79,69,0.15)', borderRadius: 12, padding: '10px 14px', fontSize: 13, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+            </div>
+            <button onClick={salvar} disabled={salvando} style={{ width: '100%', background: primary, color: '#fff', border: 'none', borderRadius: 10, padding: '11px 0', fontSize: 13, fontWeight: 600, cursor: 'pointer', opacity: salvando ? 0.6 : 1 }}>
+              {salvando ? 'Salvando...' : 'Salvar meta'}
+            </button>
+          </div>
+        )}
+
+        {metasReais.length === 0 && !mostrarForm && (
+          <div className="glass" style={{ borderRadius: 20, padding: 40, textAlign: 'center', marginTop: 16 }}>
+            <Target size={26} color={muted} style={{ marginBottom: 10 }} />
+            <div style={{ fontSize: 13, color: muted }}>Nenhuma meta cadastrada ainda</div>
+          </div>
+        )}
+
+        <div className="metas-grid">
+          {metasReais.map((m) => <MetaCard key={m.id} m={m} />)}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TelaAjustes({ householdId }) {
+  const [membros, setMembros] = useState([]);
+  const [carregando, setCarregando] = useState(true);
+  const [pessoaSimulada, setPessoaSimulada] = useState(null);
+  const [valorSimulado, setValorSimulado] = useState('');
+  const [decisao, setDecisao] = useState(null);
+  const [salvandoId, setSalvandoId] = useState(null);
+
+  const buscar = () => {
+    setCarregando(true);
+    const inicioMes = new Date(); inicioMes.setDate(1);
+    const inicioMesStr = inicioMes.toISOString().slice(0, 10);
+    Promise.all([
+      window.db.from('profiles').select('id, nome, avatar_cor, perc_caixinha, renda_base, caixinha_valor, colchao_valor').eq('household_id', householdId),
+      window.db.from('transactions').select('autor_id, valor').eq('household_id', householdId).eq('tipo', 'entrada').gte('data', inicioMesStr),
+    ]).then(([resMembros, resEntradas]) => {
+      const entradasPorAutor = {};
+      (resEntradas.data || []).forEach((t) => { entradasPorAutor[t.autor_id] = (entradasPorAutor[t.autor_id] || 0) + Number(t.valor); });
+      const lista = (resMembros.data || []).map((m) => ({ ...m, entradaMesAtual: entradasPorAutor[m.id] || 0, perc_caixinha: m.perc_caixinha ?? 20, renda_base: m.renda_base ?? 0 }));
+      setMembros(lista);
+      if (lista.length > 0) setPessoaSimulada((prev) => prev || lista[0].id);
+      setCarregando(false);
+    });
+  };
+
+  useEffect(() => { buscar(); }, [householdId]);
+
+  const atualizarCampo = (id, campo, valor) => {
+    setMembros((prev) => prev.map((m) => (m.id === id ? { ...m, [campo]: Number(valor) } : m)));
+  };
+
+  const salvarPessoa = async (id) => {
+    const m = membros.find((x) => x.id === id);
+    setSalvandoId(id);
+    const { error } = await window.db.from('profiles').update({ perc_caixinha: m.perc_caixinha, renda_base: m.renda_base }).eq('id', id);
+    if (error) alert('Erro ao salvar: ' + error.message);
+    setSalvandoId(null);
+  };
+
+  if (carregando) return <div style={{ padding: 40, textAlign: 'center', color: muted, fontSize: 13 }}>Carregando...</div>;
+
+  const f = membros.find((m) => m.id === pessoaSimulada);
+  const valorNum = Number(valorSimulado) || 0;
+  const paraCaixinha = f ? valorNum * ((f.perc_caixinha || 0) / 100) : 0;
+  const restante = valorNum - paraCaixinha;
+  const espacoNoTeto = f ? Math.max(0, (f.renda_base || 0) - f.entradaMesAtual) : 0;
+  const excedente = Math.max(0, restante - espacoNoTeto);
+  const estourouTeto = excedente > 0;
+
+  return (
+    <div className="content-grid">
+      <div className="col-main">
+        <div style={{ marginBottom: 4 }}>
+          <div className="voice" style={{ fontSize: 22, fontWeight: 500, marginBottom: 2 }}>Como organizamos nosso dinheiro</div>
+          <div style={{ fontSize: 13, color: muted }}>Isso define o que vira "disponível pra gastar" a cada entrada</div>
+        </div>
+
+        {membros.length === 0 && (
+          <div className="glass" style={{ borderRadius: 20, padding: 40, textAlign: 'center', marginTop: 16 }}>
+            <div style={{ fontSize: 13, color: muted }}>Nenhum membro encontrado</div>
+          </div>
+        )}
+
+        {membros.map((m) => (
+          <div key={m.id} className="glass" style={{ borderRadius: 20, padding: 20, marginTop: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 16 }}>
+              <div style={{ width: 8, height: 8, borderRadius: '50%', background: m.avatar_cor || primary }} />
+              <span style={{ fontSize: 13.5, fontWeight: 600 }}>{m.nome || 'Sem nome'}</span>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <div>
+                <label style={{ fontSize: 11.5, color: muted, display: 'block', marginBottom: 6 }}>% de cada entrada pra caixinha</label>
+                <div style={{ display: 'flex', alignItems: 'center', border: '1px solid rgba(14,79,69,0.15)', borderRadius: 12, padding: '9px 12px' }}>
+                  <input type="number" value={m.perc_caixinha} onChange={(e) => atualizarCampo(m.id, 'perc_caixinha', e.target.value)}
+                    style={{ border: 'none', outline: 'none', width: '100%', fontSize: 14, fontFamily: 'inherit' }} />
+                  <span style={{ fontSize: 13, color: muted }}>%</span>
+                </div>
+              </div>
+              <div>
+                <label style={{ fontSize: 11.5, color: muted, display: 'block', marginBottom: 6 }}>Teto mensal (renda-base)</label>
+                <div style={{ display: 'flex', alignItems: 'center', border: '1px solid rgba(14,79,69,0.15)', borderRadius: 12, padding: '9px 12px' }}>
+                  <span style={{ fontSize: 13, color: muted, marginRight: 4 }}>R$</span>
+                  <input type="number" value={m.renda_base} onChange={(e) => atualizarCampo(m.id, 'renda_base', e.target.value)}
+                    style={{ border: 'none', outline: 'none', width: '100%', fontSize: 14, fontFamily: 'inherit' }} />
+                </div>
+              </div>
+            </div>
+            <div style={{ fontSize: 11, color: muted, marginTop: 12, marginBottom: 12, lineHeight: 1.5, display: 'flex', gap: 6 }}>
+              <Info size={13} style={{ flexShrink: 0, marginTop: 1 }} />
+              Já entrou R$ {fmt(m.entradaMesAtual)} esse mês — {m.entradaMesAtual >= m.renda_base ? 'já bateu o teto, o resto vira excedente' : `ainda cabem R$ ${fmt(m.renda_base - m.entradaMesAtual)} antes de estourar`}.
+            </div>
+            <button onClick={() => salvarPessoa(m.id)} disabled={salvandoId === m.id} style={{ background: primary, color: '#fff', border: 'none', borderRadius: 10, padding: '8px 16px', fontSize: 12, fontWeight: 600, cursor: 'pointer', opacity: salvandoId === m.id ? 0.6 : 1 }}>
+              {salvandoId === m.id ? 'Salvando...' : 'Salvar'}
+            </button>
+          </div>
+        ))}
+
+        {/* Simulador do ponto de decisão */}
+        {membros.length > 0 && (
+          <div className="glass" style={{ borderRadius: 20, padding: 20, marginTop: 20 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 4 }}>
+              <Sparkles size={14} color={gold} />
+              <span style={{ fontSize: 13, fontWeight: 600 }}>Simular uma nova entrada</span>
+            </div>
+            <div style={{ fontSize: 11.5, color: muted, marginBottom: 16 }}>Veja como o app reagiria a um novo lançamento de entrada</div>
+
+            <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
+              {membros.map((m) => (
+                <button key={m.id} onClick={() => { setPessoaSimulada(m.id); setDecisao(null); }} style={{
+                  padding: '7px 16px', borderRadius: 20, border: 'none', cursor: 'pointer', fontSize: 12.5, fontWeight: 600,
+                  background: pessoaSimulada === m.id ? (m.avatar_cor || primary) : 'rgba(14,79,69,0.06)',
+                  color: pessoaSimulada === m.id ? '#fff' : muted,
+                }}>{m.nome || 'Sem nome'}</button>
+              ))}
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', border: '1px solid rgba(14,79,69,0.15)', borderRadius: 12, padding: '10px 14px', marginBottom: 16 }}>
+              <span style={{ fontSize: 13, color: muted, marginRight: 4 }}>R$</span>
+              <input type="number" value={valorSimulado} onChange={(e) => { setValorSimulado(e.target.value); setDecisao(null); }} placeholder="Ex: 3500"
+                style={{ border: 'none', outline: 'none', width: '100%', fontSize: 14, fontFamily: 'inherit' }} />
+            </div>
+
+            {valorNum > 0 && f && (
+              <div style={{ background: 'rgba(14,79,69,0.04)', borderRadius: 14, padding: 16 }}>
+                <div style={{ fontSize: 12, marginBottom: 8 }}>💰 <b>R$ {fmt(paraCaixinha)}</b> vai automático pra caixinha ({f.perc_caixinha}%)</div>
+                {!estourouTeto ? (
+                  <div style={{ fontSize: 12, color: primary }}>✓ O resto (R$ {fmt(restante)}) cabe dentro do seu teto — vira disponível pra gastar normalmente.</div>
+                ) : (
+                  <>
+                    <div style={{ fontSize: 12, color: '#C1694F', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <AlertCircle size={13} /> Isso passa seu teto em <b>R$ {fmt(excedente)}</b>. O que fazer com o excedente?
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      {['Colchão', 'Investimento', 'Dividir'].map((opcao) => (
+                        <button key={opcao} onClick={() => setDecisao(opcao)} style={{
+                          padding: '8px 14px', borderRadius: 10, border: `1px solid ${decisao === opcao ? primary : 'rgba(14,79,69,0.15)'}`,
+                          background: decisao === opcao ? primaryTint : '#fff', color: decisao === opcao ? primary : ink,
+                          fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                        }}>{opcao}</button>
+                      ))}
+                    </div>
+                    {decisao && (
+                      <div style={{ fontSize: 11.5, color: muted, marginTop: 12 }}>
+                        {decisao === 'Colchão' && `R$ ${fmt(excedente)} vão pro colchão de meses fracos.`}
+                        {decisao === 'Investimento' && `R$ ${fmt(excedente)} seguem direto pra Investimentos.`}
+                        {decisao === 'Dividir' && `Metade (R$ ${fmt(excedente / 2)}) pro colchão, metade pra investimento — você pode ajustar a proporção depois.`}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Tenta ler um CSV de fatura de banco (formatos variam bastante entre bancos —
+// isso é uma melhor tentativa, sempre mostrando prévia antes de confirmar)
+function splitCSVLinha(linha, delimitador) {
+  const resultado = [];
+  let atual = '';
+  let dentroAspas = false;
+  for (let i = 0; i < linha.length; i++) {
+    const ch = linha[i];
+    if (ch === '"') dentroAspas = !dentroAspas;
+    else if (ch === delimitador && !dentroAspas) { resultado.push(atual); atual = ''; }
+    else atual += ch;
+  }
+  resultado.push(atual);
+  return resultado.map((s) => s.trim().replace(/^"|"$/g, ''));
+}
+
+function parseCSVFatura(texto) {
+  const linhas = texto.split('\n').map((l) => l.trim()).filter((l) => l.length > 0);
+  if (linhas.length < 2) return [];
+  const delimitador = (linhas[0].match(/;/g) || []).length > (linhas[0].match(/,/g) || []).length ? ';' : ',';
+  const cabecalho = splitCSVLinha(linhas[0], delimitador).map((h) => h.trim().toLowerCase());
+  const idxData = cabecalho.findIndex((h) => h.includes('data') || h.includes('date'));
+  const idxValor = cabecalho.findIndex((h) => h.includes('valor') || h.includes('amount') || h.includes('value'));
+  const idxDesc = cabecalho.findIndex((h) => h.includes('descri') || h.includes('histor') || h.includes('estabelec') || h.includes('title') || h.includes('category'));
+  if (idxValor === -1) return [];
+
+  const parseValor = (v) => {
+    let s = (v || '').replace('R$', '').trim();
+    if (s.includes(',') && s.includes('.')) s = s.replace(/\./g, '').replace(',', '.');
+    else if (s.includes(',') && !s.includes('.')) s = s.replace(',', '.');
+    return parseFloat(s) || 0;
+  };
+  const parseData = (v) => {
+    const s = (v || '').trim();
+    const br = s.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+    if (br) return `${br[3]}-${br[2]}-${br[1]}`;
+    const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (iso) return s.slice(0, 10);
+    return new Date().toISOString().slice(0, 10);
+  };
+
+  return linhas.slice(1).map((linha) => {
+    const cols = splitCSVLinha(linha, delimitador);
+    const valorBruto = parseValor(cols[idxValor]);
+    return {
+      data: idxData >= 0 ? parseData(cols[idxData]) : new Date().toISOString().slice(0, 10),
+      descricao: idxDesc >= 0 ? (cols[idxDesc] || 'Lançamento importado') : 'Lançamento importado',
+      valor: Math.abs(valorBruto),
+      tipo: valorBruto < 0 ? 'entrada' : 'saida', // fatura de cartão: maioria é despesa; negativo costuma ser estorno/pagamento
+      incluir: true,
+    };
+  }).filter((r) => r.valor > 0);
+}
+
+function TelaCarteira({ userId, householdId }) {
+  const [contasReais, setContasReais] = useState([]);
+  const [membros, setMembros] = useState([]);
+  const [caixinhas, setCaixinhas] = useState([]);
+  const [parcelas, setParcelas] = useState([]);
+  const [carregando, setCarregando] = useState(true);
+  const [ativo, setAtivo] = useState(null);
+  const [mostrarForm, setMostrarForm] = useState(false);
+  const [novo, setNovo] = useState({ nome: '', cor: '#3E72B8', dono: 'Conjunta', saldo: '', fatura: '', diaVenc: '', limite: '' });
+  const [salvando, setSalvando] = useState(false);
+
+  const [mostrarFormCaixinha, setMostrarFormCaixinha] = useState(false);
+  const [novaCaixinha, setNovaCaixinha] = useState({ nome: '', valor: '' });
+  const [mostrarFormParcela, setMostrarFormParcela] = useState(false);
+  const [novaParcela, setNovaParcela] = useState({ descricao: '', valorTotal: '', numParcelas: '', dataPrimeira: new Date().toISOString().slice(0, 10) });
+
+  const [arquivoNome, setArquivoNome] = useState('');
+  const [previewCSV, setPreviewCSV] = useState([]);
+  const [importando, setImportando] = useState(false);
+  const [erroImport, setErroImport] = useState('');
+
+  const buscarTudo = () => {
+    setCarregando(true);
+    Promise.all([
+      window.db.from('accounts').select('*').eq('household_id', householdId),
+      window.db.from('profiles').select('id, nome, avatar_cor, perc_caixinha, renda_base, caixinha_valor, colchao_valor').eq('household_id', householdId),
+      window.db.from('caixinhas_conta').select('*').eq('household_id', householdId),
+      window.db.from('compras_parceladas').select('*').eq('household_id', householdId),
+    ]).then(([resContas, resMembros, resCaixinhas, resParcelas]) => {
+      setContasReais(resContas.data || []);
+      setMembros(resMembros.data || []);
+      setCaixinhas(resCaixinhas.data || []);
+      setParcelas(resParcelas.data || []);
+      if (resContas.data && resContas.data.length > 0) setAtivo((prev) => prev || resContas.data[0].id);
+      setCarregando(false);
+    });
+  };
+
+  useEffect(() => { buscarTudo(); }, [householdId]);
+
+  const salvar = async () => {
+    if (!novo.nome || !novo.saldo) return;
+    setSalvando(true);
+    const { error } = await window.db.from('accounts').insert([{
+      household_id: householdId, nome: novo.nome, cor: novo.cor, dono: novo.dono,
+      saldo: Number(novo.saldo) || 0, fatura: Number(novo.fatura) || 0, dia_venc: Number(novo.diaVenc) || null, limite: Number(novo.limite) || 0,
+    }]);
+    if (error) { alert('Erro ao salvar: ' + error.message); setSalvando(false); return; }
+    setNovo({ nome: '', cor: '#3E72B8', dono: 'Conjunta', saldo: '', fatura: '', diaVenc: '', limite: '' });
+    setMostrarForm(false);
+    setSalvando(false);
+    buscarTudo();
+  };
+
+  const salvarCaixinha = async () => {
+    if (!novaCaixinha.nome || !ativo) return;
+    const { error } = await window.db.from('caixinhas_conta').insert([{
+      household_id: householdId, account_id: ativo, nome: novaCaixinha.nome, valor: Number(novaCaixinha.valor) || 0,
+    }]);
+    if (error) { alert('Erro ao salvar: ' + error.message); return; }
+    setNovaCaixinha({ nome: '', valor: '' });
+    setMostrarFormCaixinha(false);
+    buscarTudo();
+  };
+
+  const salvarParcela = async () => {
+    if (!novaParcela.descricao || !novaParcela.valorTotal || !novaParcela.numParcelas || !ativo) return;
+    const { error } = await window.db.from('compras_parceladas').insert([{
+      household_id: householdId, account_id: ativo, descricao: novaParcela.descricao,
+      valor_total: Number(novaParcela.valorTotal), num_parcelas: Number(novaParcela.numParcelas),
+      data_primeira_parcela: novaParcela.dataPrimeira,
+    }]);
+    if (error) { alert('Erro ao salvar: ' + error.message); return; }
+    setNovaParcela({ descricao: '', valorTotal: '', numParcelas: '', dataPrimeira: new Date().toISOString().slice(0, 10) });
+    setMostrarFormParcela(false);
+    buscarTudo();
+  };
+
+  const calcularParcelas = (compra) => {
+    const hoje = new Date();
+    const inicio = new Date(compra.data_primeira_parcela + 'T00:00:00');
+    let mesesPassados = (hoje.getFullYear() - inicio.getFullYear()) * 12 + (hoje.getMonth() - inicio.getMonth()) + 1;
+    mesesPassados = Math.max(0, Math.min(compra.num_parcelas, mesesPassados));
+    const valorParcela = compra.valor_total / compra.num_parcelas;
+    return { mesesPassados, valorParcela, pago: mesesPassados * valorParcela, falta: compra.valor_total - mesesPassados * valorParcela };
+  };
+
+  const handleArquivoCSV = (e) => {
+    const arquivo = e.target.files[0];
+    if (!arquivo) return;
+    setArquivoNome(arquivo.name);
+    setErroImport('');
+    const leitor = new FileReader();
+    leitor.onload = (ev) => {
+      const linhas = parseCSVFatura(ev.target.result);
+      if (linhas.length === 0) setErroImport('Não consegui reconhecer o formato desse arquivo. Confirma se é um CSV com colunas de data, descrição e valor.');
+      setPreviewCSV(linhas);
+    };
+    leitor.readAsText(arquivo, 'utf-8');
+  };
+
+  const confirmarImportacao = async () => {
+    if (!ativo) return;
+    setImportando(true);
+    const linhasParaImportar = previewCSV.filter((l) => l.incluir).map((l) => ({
+      household_id: householdId, autor_id: userId, tipo: l.tipo, descricao: l.descricao,
+      valor: l.valor, categoria: 'Importado', grupo: 'Variável', visivel: true, data: l.data, conta: ativo,
+    }));
+    const { error } = await window.db.from('transactions').insert(linhasParaImportar);
+    setImportando(false);
+    if (error) { alert('Erro ao importar: ' + error.message); return; }
+    setPreviewCSV([]);
+    setArquivoNome('');
+    alert(`${linhasParaImportar.length} lançamento(s) importado(s) com sucesso!`);
+  };
+
+  const apagarConta = async (id) => {
+    if (!confirm('Apagar essa conta? Isso também apaga as caixinhas e compras parceladas ligadas a ela.')) return;
+    const { error } = await window.db.from('accounts').delete().eq('id', id);
+    if (error) { alert('Erro ao apagar: ' + error.message); return; }
+    if (ativo === id) setAtivo(null);
+    buscarTudo();
+  };
+
+  const apagarCaixinha = async (id) => {
+    if (!confirm('Apagar essa caixinha?')) return;
+    const { error } = await window.db.from('caixinhas_conta').delete().eq('id', id);
+    if (error) { alert('Erro ao apagar: ' + error.message); return; }
+    buscarTudo();
+  };
+
+  const apagarParcela = async (id) => {
+    if (!confirm('Apagar essa compra parcelada?')) return;
+    const { error } = await window.db.from('compras_parceladas').delete().eq('id', id);
+    if (error) { alert('Erro ao apagar: ' + error.message); return; }
+    buscarTudo();
+  };
+
+  if (carregando) return <div style={{ padding: 40, textAlign: 'center', color: muted, fontSize: 13 }}>Carregando...</div>;
+
+  const contaAtiva = contasReais.find((c) => c.id === ativo);
+  const totais = contasReais.reduce((acc, c) => { acc.saldo += Number(c.saldo || 0); acc.fatura += Number(c.fatura || 0); return acc; }, { saldo: 0, fatura: 0 });
+  const cores = [lucas, marina, primary, gold, '#3E72B8', '#820AD1'];
+
+  return (
+    <div className="content-grid">
+      <div className="col-main">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+          <div className="voice" style={{ fontSize: 22, fontWeight: 500 }}>Carteira</div>
+          <button onClick={() => setMostrarForm(!mostrarForm)} style={{ background: primary, color: '#fff', border: 'none', borderRadius: 20, padding: '9px 16px', fontSize: 12.5, fontWeight: 600, cursor: 'pointer' }}>
+            + Adicionar conta
+          </button>
+        </div>
+
+        {mostrarForm && (
+          <div className="glass" style={{ borderRadius: 20, padding: 18, marginTop: 16, marginBottom: 4 }}>
+            <input value={novo.nome} onChange={(e) => setNovo({ ...novo, nome: e.target.value })} placeholder="Nome do banco (ex: Nubank)"
+              style={{ width: '100%', border: '1px solid rgba(14,79,69,0.15)', borderRadius: 12, padding: '10px 14px', fontSize: 13, outline: 'none', marginBottom: 10, fontFamily: 'inherit', boxSizing: 'border-box' }} />
+            <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+              {cores.map((c) => (
+                <button key={c} onClick={() => setNovo({ ...novo, cor: c })} style={{ width: 26, height: 26, borderRadius: '50%', background: c, border: novo.cor === c ? '2px solid #fff' : 'none', boxShadow: novo.cor === c ? `0 0 0 2px ${c}` : 'none', cursor: 'pointer' }} />
+              ))}
+            </div>
+            <input value={novo.dono} onChange={(e) => setNovo({ ...novo, dono: e.target.value })} placeholder="Dono (Conjunta, seu nome, etc.)"
+              style={{ width: '100%', border: '1px solid rgba(14,79,69,0.15)', borderRadius: 12, padding: '10px 14px', fontSize: 13, outline: 'none', marginBottom: 10, fontFamily: 'inherit', boxSizing: 'border-box' }} />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+              <InputDinheiro value={novo.saldo} onChange={(v) => setNovo({ ...novo, saldo: v })} placeholder="Saldo" />
+              <InputDinheiro value={novo.fatura} onChange={(v) => setNovo({ ...novo, fatura: v })} placeholder="Fatura" />
+              <input type="number" value={novo.diaVenc} onChange={(e) => setNovo({ ...novo, diaVenc: e.target.value })} placeholder="Dia de vencimento"
+                style={{ border: '1px solid rgba(14,79,69,0.15)', borderRadius: 12, padding: '10px 14px', fontSize: 13, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+              <InputDinheiro value={novo.limite} onChange={(v) => setNovo({ ...novo, limite: v })} placeholder="Limite" />
+            </div>
+            <button onClick={salvar} disabled={salvando} style={{ width: '100%', background: primary, color: '#fff', border: 'none', borderRadius: 10, padding: '11px 0', fontSize: 13, fontWeight: 600, cursor: 'pointer', opacity: salvando ? 0.6 : 1 }}>
+              {salvando ? 'Salvando...' : 'Salvar conta'}
+            </button>
+          </div>
+        )}
+
+        {contasReais.length === 0 && !mostrarForm && (
+          <div className="glass" style={{ borderRadius: 20, padding: 40, textAlign: 'center', marginTop: 16 }}>
+            <WalletIcon size={26} color={muted} style={{ marginBottom: 10 }} />
+            <div style={{ fontSize: 13, color: muted }}>Nenhuma conta cadastrada ainda</div>
+          </div>
+        )}
+
+        {contasReais.length > 0 && (
+          <>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 14, marginTop: 16, marginBottom: 4 }}>
+              <div className="glass" style={{ borderRadius: 20, padding: 18 }}>
+                <div style={{ fontSize: 11.5, color: muted, fontWeight: 600, letterSpacing: 0.4, marginBottom: 4 }}>SALDO TOTAL</div>
+                <div className="voice" style={{ fontSize: 24, fontWeight: 500 }}>R$ {fmt(totais.saldo)}</div>
+              </div>
+              <div className="glass" style={{ borderRadius: 20, padding: 18 }}>
+                <div style={{ fontSize: 11.5, color: muted, fontWeight: 600, letterSpacing: 0.4, marginBottom: 4 }}>FATURAS EM ABERTO</div>
+                <div className="voice" style={{ fontSize: 24, fontWeight: 500 }}>R$ {fmt(totais.fatura)}</div>
+              </div>
+            </div>
+
+            <div className="card-stack">
+              {contasReais.map((c, i) => {
+                const isAtivo = c.id === ativo;
+                return (
+                  <div key={c.id} className="bank-card" onClick={() => { triggerHaptic(); setAtivo(c.id); }} style={{
+                    background: `linear-gradient(135deg, ${c.cor}, ${c.cor}CC)`, color: '#fff',
+                    marginLeft: i === 0 ? 0 : -96, zIndex: isAtivo ? 20 : i,
+                    transform: isAtivo ? 'translateY(-10px) scale(1.02)' : 'none',
+                    boxShadow: isAtivo ? `0 16px 32px -8px ${c.cor}66` : '0 6px 14px rgba(0,0,0,0.14)',
+                    border: isAtivo ? '2px solid rgba(255,255,255,0.7)' : 'none',
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <span style={{ fontSize: 14, fontWeight: 700 }}>{c.nome}</span>
+                      <span style={{ fontSize: 9.5, background: 'rgba(255,255,255,0.25)', padding: '3px 8px', borderRadius: 10, fontWeight: 600 }}>{c.dono}</span>
+                    </div>
+                    <div style={{ fontSize: 11, opacity: 0.85, letterSpacing: 2 }}>•••• •••• •••• ••••</div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {contaAtiva && (
+              <div className="glass" style={{ borderRadius: 22, padding: 22, marginTop: 20 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+                  <div style={{ width: 10, height: 10, borderRadius: 3, background: contaAtiva.cor }} />
+                  <span style={{ fontSize: 14, fontWeight: 600 }}>{contaAtiva.nome}</span>
+                  <span style={{ fontSize: 11, color: primary, fontWeight: 600, background: 'rgba(0,0,0,0.04)', padding: '2px 9px', borderRadius: 10 }}>{contaAtiva.dono}</span>
+                  {contaAtiva.dia_venc && <span style={{ fontSize: 11, color: muted, marginLeft: contaAtiva.dia_venc ? 'auto' : 0 }}>vence dia {contaAtiva.dia_venc}</span>}
+                  <button onClick={() => apagarConta(contaAtiva.id)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', marginLeft: contaAtiva.dia_venc ? 0 : 'auto' }} title="Apagar conta">
+                    <Trash2 size={15} color="#C1694F" />
+                  </button>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 18, marginBottom: 20 }}>
+                  <div><div style={{ fontSize: 11, color: muted, marginBottom: 3 }}>Saldo</div><div style={{ fontSize: 15, fontWeight: 600 }}>R$ {fmt(contaAtiva.saldo)}</div></div>
+                  <div><div style={{ fontSize: 11, color: muted, marginBottom: 3 }}>Fatura</div><div style={{ fontSize: 15, fontWeight: 600 }}>R$ {fmt(contaAtiva.fatura)}</div></div>
+                  <div><div style={{ fontSize: 11, color: muted, marginBottom: 3 }}>Limite</div><div style={{ fontSize: 15, fontWeight: 600 }}>R$ {fmt(contaAtiva.limite)}</div></div>
+                </div>
+
+                {/* Caixinhas dessa conta */}
+                <div style={{ borderTop: '1px solid rgba(14,79,69,0.08)', paddingTop: 16, marginBottom: 16 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: muted, letterSpacing: 0.3 }}>CAIXINHAS DESSA CONTA</span>
+                    <button onClick={() => setMostrarFormCaixinha(!mostrarFormCaixinha)} style={{ background: 'transparent', border: 'none', color: primary, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>+ Adicionar</button>
+                  </div>
+                  {mostrarFormCaixinha && (
+                    <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+                      <input value={novaCaixinha.nome} onChange={(e) => setNovaCaixinha({ ...novaCaixinha, nome: e.target.value })} placeholder="Nome (ex: Viagem)"
+                        style={{ flex: 1, border: '1px solid rgba(14,79,69,0.15)', borderRadius: 10, padding: '8px 12px', fontSize: 12.5, outline: 'none', fontFamily: 'inherit' }} />
+                      <input type="number" value={novaCaixinha.valor} onChange={(e) => setNovaCaixinha({ ...novaCaixinha, valor: e.target.value })} placeholder="R$"
+                        style={{ width: 90, border: '1px solid rgba(14,79,69,0.15)', borderRadius: 10, padding: '8px 12px', fontSize: 12.5, outline: 'none', fontFamily: 'inherit' }} />
+                      <button onClick={salvarCaixinha} style={{ background: primary, color: '#fff', border: 'none', borderRadius: 10, padding: '0 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Salvar</button>
+                    </div>
+                  )}
+                  {caixinhas.filter((c) => c.account_id === contaAtiva.id).length === 0
+                    ? <div style={{ fontSize: 12, color: muted }}>Nenhuma caixinha nessa conta ainda</div>
+                    : (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                        {caixinhas.filter((c) => c.account_id === contaAtiva.id).map((c) => (
+                          <div key={c.id} style={{ background: 'rgba(14,79,69,0.05)', borderRadius: 12, padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <div>
+                              <div style={{ fontSize: 11, color: muted }}>{c.nome}</div>
+                              <div style={{ fontSize: 13, fontWeight: 600 }}>R$ {fmt(c.valor)}</div>
+                            </div>
+                            <button onClick={() => apagarCaixinha(c.id)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', padding: 0 }}>
+                              <Trash2 size={12} color="#C1694F" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                </div>
+
+                {/* Compras parceladas dessa conta */}
+                <div style={{ borderTop: '1px solid rgba(14,79,69,0.08)', paddingTop: 16, marginBottom: 16 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: muted, letterSpacing: 0.3 }}>COMPRAS PARCELADAS</span>
+                    <button onClick={() => setMostrarFormParcela(!mostrarFormParcela)} style={{ background: 'transparent', border: 'none', color: primary, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>+ Adicionar</button>
+                  </div>
+                  {mostrarFormParcela && (
+                    <div style={{ background: 'rgba(14,79,69,0.03)', borderRadius: 12, padding: 12, marginBottom: 10 }}>
+                      <input value={novaParcela.descricao} onChange={(e) => setNovaParcela({ ...novaParcela, descricao: e.target.value })} placeholder="Descrição (ex: Sofá novo)"
+                        style={{ width: '100%', border: '1px solid rgba(14,79,69,0.15)', borderRadius: 10, padding: '8px 12px', fontSize: 12.5, outline: 'none', marginBottom: 8, fontFamily: 'inherit', boxSizing: 'border-box' }} />
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 8 }}>
+                        <input type="number" value={novaParcela.valorTotal} onChange={(e) => setNovaParcela({ ...novaParcela, valorTotal: e.target.value })} placeholder="Valor total"
+                          style={{ border: '1px solid rgba(14,79,69,0.15)', borderRadius: 10, padding: '8px 10px', fontSize: 12.5, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+                        <input type="number" value={novaParcela.numParcelas} onChange={(e) => setNovaParcela({ ...novaParcela, numParcelas: e.target.value })} placeholder="Nº parcelas"
+                          style={{ border: '1px solid rgba(14,79,69,0.15)', borderRadius: 10, padding: '8px 10px', fontSize: 12.5, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+                        <input type="date" value={novaParcela.dataPrimeira} onChange={(e) => setNovaParcela({ ...novaParcela, dataPrimeira: e.target.value })}
+                          style={{ border: '1px solid rgba(14,79,69,0.15)', borderRadius: 10, padding: '8px 10px', fontSize: 12.5, outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+                      </div>
+                      <button onClick={salvarParcela} style={{ width: '100%', background: primary, color: '#fff', border: 'none', borderRadius: 10, padding: '8px 0', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>Salvar compra parcelada</button>
+                    </div>
+                  )}
+                  {parcelas.filter((p) => p.account_id === contaAtiva.id).length === 0
+                    ? <div style={{ fontSize: 12, color: muted }}>Nenhuma compra parcelada nessa conta</div>
+                    : parcelas.filter((p) => p.account_id === contaAtiva.id).map((p) => {
+                      const calc = calcularParcelas(p);
+                      return (
+                        <div key={p.id} style={{ padding: '10px 0', borderBottom: '1px solid rgba(14,79,69,0.06)' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12.5, fontWeight: 500, marginBottom: 4 }}>
+                            <span>{p.descricao}</span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <span>{calc.mesesPassados}/{p.num_parcelas}</span>
+                              <button onClick={() => apagarParcela(p.id)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', padding: 0 }}>
+                                <Trash2 size={12} color="#C1694F" />
+                              </button>
+                            </div>
+                          </div>
+                          <div style={{ height: 5, borderRadius: 3, background: 'rgba(14,79,69,0.08)', overflow: 'hidden', marginBottom: 4 }}>
+                            <div style={{ height: '100%', width: `${(calc.mesesPassados / p.num_parcelas) * 100}%`, background: primary, borderRadius: 3 }} />
+                          </div>
+                          <div style={{ fontSize: 11, color: muted }}>Falta R$ {fmt(calc.falta)} de R$ {fmt(p.valor_total)}</div>
+                        </div>
+                      );
+                    })}
+                </div>
+
+                {/* Importar CSV */}
+                <div style={{ borderTop: '1px solid rgba(14,79,69,0.08)', paddingTop: 16 }}>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: muted, letterSpacing: 0.3, display: 'block', marginBottom: 10 }}>IMPORTAR FATURA (CSV)</span>
+                  <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'rgba(14,79,69,0.06)', borderRadius: 10, padding: '8px 14px', fontSize: 12, fontWeight: 600, color: primary, cursor: 'pointer' }}>
+                    <Copy size={13} /> {arquivoNome || 'Escolher arquivo .csv'}
+                    <input type="file" accept=".csv" onChange={handleArquivoCSV} style={{ display: 'none' }} />
+                  </label>
+                  {erroImport && <div style={{ fontSize: 12, color: '#C1694F', marginTop: 8 }}>{erroImport}</div>}
+                  {previewCSV.length > 0 && (
+                    <div style={{ marginTop: 12 }}>
+                      <div style={{ fontSize: 11.5, color: muted, marginBottom: 8 }}>{previewCSV.length} lançamento(s) encontrado(s) — confira antes de importar:</div>
+                      <div style={{ maxHeight: 200, overflowY: 'auto', marginBottom: 10 }}>
+                        {previewCSV.map((linha, i) => (
+                          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', borderBottom: '1px solid rgba(14,79,69,0.05)' }}>
+                            <input type="checkbox" checked={linha.incluir} onChange={(e) => setPreviewCSV((prev) => prev.map((l, idx) => idx === i ? { ...l, incluir: e.target.checked } : l))} />
+                            <span style={{ fontSize: 11.5, flex: 1 }}>{linha.descricao}</span>
+                            <span onClick={() => setPreviewCSV((prev) => prev.map((l, idx) => idx === i ? { ...l, tipo: l.tipo === 'saida' ? 'entrada' : 'saida' } : l))}
+                              title="Clique pra corrigir se estiver errado" style={{ fontSize: 11.5, color: tipoCor[linha.tipo], cursor: 'pointer', textDecoration: 'underline dotted' }}>
+                              {tipoSinal[linha.tipo]} R$ {fmt(linha.valor)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                      <button onClick={confirmarImportacao} disabled={importando} style={{ width: '100%', background: primary, color: '#fff', border: 'none', borderRadius: 10, padding: '10px 0', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', opacity: importando ? 0.6 : 1 }}>
+                        {importando ? 'Importando...' : `Confirmar importação de ${previewCSV.filter((l) => l.incluir).length} lançamento(s)`}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Caixinhas — visão geral de todas, de todas as contas */}
+        {caixinhas.length > 0 && (
+          <div style={{ marginTop: 24 }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: muted, letterSpacing: 0.4, marginBottom: 12 }}>CAIXINHAS — VISÃO GERAL</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
+              {caixinhas.map((c) => {
+                const conta = contasReais.find((ct) => ct.id === c.account_id);
+                return (
+                  <div key={c.id} className="glass" style={{ borderRadius: 16, padding: 16 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                      <div style={{ width: 7, height: 7, borderRadius: '50%', background: conta?.cor || primary }} />
+                      <span style={{ fontSize: 11, color: muted }}>{conta?.nome || '—'} · {conta?.dono || '—'}</span>
+                    </div>
+                    <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 2 }}>{c.nome}</div>
+                    <div className="voice" style={{ fontSize: 17, fontWeight: 500 }}>R$ {fmt(c.valor)}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Reservas — dado real de cada pessoa da household */}
+        <div style={{ marginTop: 24 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
+            <ShieldCheck size={14} color={gold} />
+            <span style={{ fontSize: 12, fontWeight: 600, color: muted, letterSpacing: 0.4 }}>RESERVAS — NÃO CONTAM COMO DISPONÍVEL</span>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 14 }}>
+            {membros.map((m) => (
+              <div key={m.id} className="glass" style={{ borderRadius: 20, padding: 18 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 14 }}>
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: m.avatar_cor || primary }} />
+                  <span style={{ fontSize: 13, fontWeight: 600 }}>{m.nome || 'Sem nome'}</span>
+                </div>
+                <div style={{ display: 'flex', gap: 20, marginBottom: 6 }}>
+                  <div>
+                    <div style={{ fontSize: 10.5, color: muted, marginBottom: 2 }}>Caixinha · {m.perc_caixinha || 0}% por entrada</div>
+                    <div style={{ fontSize: 17, fontWeight: 600 }}>R$ {fmt(m.caixinha_valor)}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 10.5, color: muted, marginBottom: 2 }}>Colchão de meses fracos</div>
+                    <div style={{ fontSize: 17, fontWeight: 600 }}>R$ {fmt(m.colchao_valor)}</div>
+                  </div>
+                </div>
+                <div style={{ fontSize: 10.5, color: muted, marginTop: 8 }}>Ajuste esses valores na aba Ajustes</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+
+function AppPrincipal({ userId, householdId }) {
+  const [nav, setNav] = useState('painel');
+  const [transacoes, setTransacoes] = useState([]);
+  const [carregandoTx, setCarregandoTx] = useState(true);
+  const [meuPerfil, setMeuPerfil] = useState(null);
+
+  useEffect(() => {
+    window.db.from('profiles').select('nome, avatar_cor, avatar_letra').eq('id', userId).maybeSingle().then(({ data }) => setMeuPerfil(data));
+  }, [userId]);
+
+  const sair = () => window.db.auth.signOut();
+
+  const buscarTransacoes = () => {
+    setCarregandoTx(true);
+    window.db.from('transactions').select('*').eq('household_id', householdId)
+      .order('data', { ascending: false }).order('created_at', { ascending: false })
+      .then(({ data, error }) => {
+        if (!error) setTransacoes(data || []);
+        setCarregandoTx(false);
+      });
+  };
+
+  useEffect(() => { buscarTransacoes(); }, [householdId]);
+
+  const adicionarLancamento = async (dados) => {
+    const { error } = await window.db.from('transactions').insert([{ ...dados, household_id: householdId, autor_id: userId }]);
+    if (error) throw error;
+    buscarTransacoes();
+  };
+
+  const editarLancamento = async (id, dados) => {
+    const { error } = await window.db.from('transactions').update(dados).eq('id', id);
+    if (error) throw error;
+    buscarTransacoes();
+  };
+
+  const apagarLancamento = async (id) => {
+    const { error } = await window.db.from('transactions').delete().eq('id', id);
+    if (error) throw error;
+    buscarTransacoes();
+  };
+
+  const saldoReal = transacoes.reduce((s, t) => s + (t.tipo === 'entrada' ? Number(t.valor) : t.tipo === 'saida' ? -Number(t.valor) : 0), 0);
+
+  const abas = [
+    { id: 'painel', label: 'Painel', icon: HomeIcon },
+    { id: 'lancamentos', label: 'Lançamentos', icon: Receipt },
+    { id: 'carteira', label: 'Carteira', icon: WalletIcon },
+    { id: 'caixinhas', label: 'Caixinhas', icon: PiggyBank },
+    { id: 'patrimonio', label: 'Patrimônio', icon: TrendingUp },
+    { id: 'metas', label: 'Metas', icon: Target },
+    { id: 'ajustes', label: 'Ajustes', icon: Settings },
+  ];
+
+  return (
+    <div className="app-shell" style={{ fontFamily: 'Inter, sans-serif', background: bg, minHeight: 720, color: ink }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500&family=Inter:wght@400;500;600;700&display=swap');
+        * { box-sizing: border-box; }
+        .voice { font-family: 'Fraunces', serif; }
+        .hero-number { font-family: 'Fraunces', serif; font-size: 42px; font-weight: 500; line-height: 1; }
+        .glass {
+          background: rgba(255,255,255,0.66);
+          backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+          border: 1px solid rgba(255,255,255,0.7);
+          box-shadow: inset 0 1px 0 rgba(255,255,255,0.5), 0 1px 2px rgba(14,79,69,0.04), 0 20px 40px -16px rgba(14,79,69,0.16);
+        }
+        .hero-card {
+          box-shadow: 0 20px 40px -15px rgba(14, 79, 69, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.3);
+          transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+          cursor: pointer;
+        }
+        .hero-card:active { transform: scale(0.98); }
+        .main-area > div { animation: slideUpFade 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        @keyframes slideUpFade {
+          from { opacity: 0; transform: translateY(12px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .app-shell { display: flex; flex-direction: column; }
+        .sidebar-desktop { display: none; }
+        .bottomnav { display: flex; }
+        .main-area { flex: 1; padding: 20px 18px 96px; max-width: 480px; margin: 0 auto; width: 100%; }
+        .content-grid { display: flex; flex-direction: column; gap: 20px; }
+        .row-2col { display: flex; flex-direction: column; gap: 20px; }
+        .only-desktop { display: none; }
+        .patrimonio-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
+        .metas-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
+        .card-stack { display: flex; padding-left: 4px; margin-top: 18px; }
+        .feed-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .feed-card { border-radius: 16px; padding: 14px; display: flex; flex-direction: column; justify-content: space-between; min-height: 108px; transition: transform 0.2s ease; }
+        .feed-card:hover { transform: translateY(-3px); }
+        .bank-card {
+          width: 168px; height: 100px; border-radius: 16px; padding: 16px; cursor: pointer;
+          display: flex; flex-direction: column; justify-content: space-between; flex-shrink: 0;
+          transition: transform 0.25s cubic-bezier(.22,1,.36,1), box-shadow 0.25s ease;
+        }
+        .bank-card:hover { transform: translateY(-6px); }
+        .patrimonio-card { border-radius: 22px; padding: 20px; position: relative; overflow: hidden; min-height: 200px; transition: transform 0.25s ease, box-shadow 0.25s ease; }
+        .patrimonio-card:hover { transform: translateY(-5px); }
+        .feedrow { transition: background 0.15s ease; }
+        .feedrow:hover { background: rgba(255,255,255,0.5) !important; }
+
+        .cta-wrap { position: fixed; bottom: 88px; right: 20px; z-index: 40; }
+        .cta-btn {
+          width: 60px; height: 60px; border-radius: 50%; background: ${primary}; border: none; cursor: pointer;
+          display: flex; align-items: center; justify-content: center; position: relative;
+          box-shadow: 0 10px 26px rgba(14,79,69,0.42);
+          transition: transform 0.25s cubic-bezier(.34,1.56,.64,1);
+          animation: halo 3.5s ease-in-out infinite;
+        }
+        @keyframes halo {
+          0%, 100% { box-shadow: 0 10px 26px rgba(14,79,69,0.42), 0 0 0 0 rgba(14,79,69,0.18); }
+          50% { box-shadow: 0 10px 26px rgba(14,79,69,0.42), 0 0 0 12px rgba(14,79,69,0); }
+        }
+        .particle {
+          position: absolute; top: 30px; left: 30px; width: 5px; height: 5px; border-radius: 50%; background: ${gold};
+          animation: burst 0.7s ease-out forwards;
+        }
+        @keyframes burst {
+          0% { transform: rotate(var(--angle)) translateX(0) scale(1); opacity: 1; }
+          100% { transform: rotate(var(--angle)) translateX(38px) scale(0); opacity: 0; }
+        }
+
+        .bottomnav {
+          position: fixed; bottom: 0; left: 0; right: 0; padding: 12px 8px;
+          background: rgba(255,255,255,0.75); backdrop-filter: blur(20px);
+          border-top: 1px solid rgba(255,255,255,0.7); justify-content: space-around; z-index: 30;
+        }
+        .navbtn-mobile { background: transparent; border: none; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px; flex: 1; }
+
+        /* ===== DESKTOP ===== */
+        @media (min-width: 900px) {
+          .app-shell { flex-direction: row; min-height: 100vh; }
+          .sidebar-desktop { display: flex; }
+          .bottomnav { display: none; }
+          .cta-wrap { bottom: 32px; right: 40px; }
+          .main-area { max-width: 980px; padding: 44px 48px 60px; margin: 0; }
+          .hero-number { font-size: 54px; }
+          .content-grid { flex-direction: row; gap: 28px; align-items: flex-start; }
+          .col-main { flex: 1.7; display: flex; flex-direction: column; gap: 22px; }
+          .col-side { flex: 1; display: flex; flex-direction: column; }
+          .row-2col { flex-direction: row; }
+          .row-2col > * { flex: 1; }
+          .only-desktop { display: block; }
+          .patrimonio-grid { grid-template-columns: repeat(3, 1fr); }
+          .metas-grid { grid-template-columns: repeat(3, 1fr); }
+          .header-mobile-only { display: none; }
+        }
+      `}</style>
+
+      {/* Sidebar desktop */}
+      <div className="sidebar-desktop" style={{ width: 240, flexShrink: 0, padding: '32px 20px', flexDirection: 'column', gap: 6, borderRight: '1px solid rgba(14,79,69,0.08)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 32, padding: '0 8px' }}>
+          <div style={{ width: 34, height: 34, borderRadius: 11, background: primary, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Sprout size={17} color="#fff" />
+          </div>
+          <span className="voice" style={{ fontSize: 19, fontWeight: 500 }}>Raiz</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', marginBottom: 28, padding: '0 8px' }}>
+          <div style={{ width: 30, height: 30, borderRadius: '50%', background: meuPerfil?.avatar_cor || primary, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#fff' }}>
+            {meuPerfil?.avatar_letra || '?'}
+          </div>
+          <span style={{ fontSize: 12.5, color: ink, marginLeft: 9, fontWeight: 500 }}>{meuPerfil?.nome || 'Carregando...'}</span>
+        </div>
+        {abas.map((a) => {
+          const Icon = a.icon; const active = nav === a.id;
+          return (
+            <button key={a.id} onClick={() => { triggerHaptic(); setNav(a.id); }} style={{
+              display: 'flex', alignItems: 'center', gap: 11, padding: '11px 12px', borderRadius: 12, border: 'none', cursor: 'pointer',
+              background: active ? primaryTint : 'transparent', color: active ? primary : muted, fontSize: 13.5, fontWeight: active ? 600 : 500, textAlign: 'left',
+            }}>
+              <Icon size={17} strokeWidth={active ? 2.2 : 1.8} />{a.label}
+            </button>
+          );
+        })}
+        <button onClick={sair} style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '11px 12px', borderRadius: 12, border: 'none', cursor: 'pointer', background: 'transparent', color: '#C1694F', fontSize: 13, fontWeight: 500, textAlign: 'left', marginTop: 'auto' }}>
+          Sair
+        </button>
+      </div>
+
+      {/* Header mobile only */}
+      <div className="main-area">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }} className="header-mobile-only">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ width: 32, height: 32, borderRadius: '50%', background: meuPerfil?.avatar_cor || primary, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#fff' }}>
+              {meuPerfil?.avatar_letra || '?'}
+            </div>
+            <span style={{ fontSize: 13, fontWeight: 500, color: ink }}>{meuPerfil?.nome || 'Carregando...'}</span>
+          </div>
+          <button onClick={sair} className="glass" style={{ border: 'none', borderRadius: 11, padding: '8px 14px', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: '#C1694F' }}>
+            Sair
+          </button>
+        </div>
+
+        {nav === 'painel' && <TelaPainel transacoes={transacoes} saldoReal={saldoReal} householdId={householdId} />}
+        {nav === 'patrimonio' && <TelaPatrimonio householdId={householdId} />}
+        {nav === 'lancamentos' && <TelaLancamentos transacoes={transacoes} adicionarLancamento={adicionarLancamento} editarLancamento={editarLancamento} apagarLancamento={apagarLancamento} />}
+        {nav === 'carteira' && <TelaCarteira userId={userId} householdId={householdId} />}
+        {nav === 'caixinhas' && <TelaCaixinhas householdId={householdId} />}
+        {nav === 'metas' && <TelaMetas householdId={householdId} />}
+        {nav === 'ajustes' && <TelaAjustes householdId={householdId} />}
+      </div>
+
+      <CTAFlutuante />
+
+      {/* Bottom bar mobile */}
+      <div className="bottomnav">
+        {abas.map((a) => {
+          const Icon = a.icon; const active = nav === a.id;
+          return (
+            <button key={a.id} onClick={() => { triggerHaptic(); setNav(a.id); }} className="navbtn-mobile">
+              <Icon size={18} color={active ? primary : muted} strokeWidth={active ? 2.2 : 1.8} />
+              <span style={{ fontSize: 10, color: active ? primary : muted, fontWeight: active ? 600 : 400 }}>{a.label}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// ONBOARDING — telas de cadastro, convite e conexão, antes de entrar no app
+// ============================================================================
+
+function gerarPadraoQR(seed, tamanho = 11) {
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+  const celulas = [];
+  for (let y = 0; y < tamanho; y++) {
+    for (let x = 0; x < tamanho; x++) {
+      const naCanto = (x < 3 && y < 3) || (x > tamanho - 4 && y < 3) || (x < 3 && y > tamanho - 4);
+      if (naCanto) continue;
+      h = (h * 1103515245 + 12345) >>> 0;
+      celulas.push({ x, y, ativo: (h >> 16) % 100 < 42 });
+    }
+  }
+  return celulas;
+}
+
+function FinderPattern({ x, y, size }) {
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <rect width={size * 3} height={size * 3} fill={ink} rx={size * 0.4} />
+      <rect x={size * 0.5} y={size * 0.5} width={size * 2} height={size * 2} fill="#fff" rx={size * 0.25} />
+      <rect x={size} y={size} width={size} height={size} fill={ink} rx={size * 0.15} />
+    </g>
+  );
+}
+
+function OnboardingStep1({ nome, setNome, avatarLetra, setAvatarLetra, avatarCor, setAvatarCor, avancar }) {
+  const cores = [lucas, marina, primary, gold];
+  return (
+    <div style={{ animation: 'fadeSlide 0.4s ease' }}>
+      <div style={{ fontSize: 11, fontWeight: 600, color: muted, letterSpacing: 0.5, marginBottom: 6 }}>PASSO 1 DE 3</div>
+      <div className="voice" style={{ fontSize: 26, fontWeight: 500, color: ink, marginBottom: 6 }}>Como podemos te chamar?</div>
+      <div style={{ fontSize: 13, color: muted, marginBottom: 32, lineHeight: 1.5 }}>Isso aparece pro seu parceiro assim que vocês se conectarem.</div>
+
+      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 28 }}>
+        <div style={{ position: 'relative' }}>
+          <div style={{
+            width: 96, height: 96, borderRadius: '50%', background: avatarCor,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 34, fontWeight: 700, color: '#fff', boxShadow: `0 12px 28px -8px ${avatarCor}88`,
+          }}>
+            {avatarLetra || '?'}
+          </div>
+          <div style={{
+            position: 'absolute', bottom: -2, right: -2, width: 32, height: 32, borderRadius: '50%', background: '#fff',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(0,0,0,0.15)', cursor: 'pointer',
+          }}>
+            <Camera size={14} color={ink} />
+          </div>
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 28 }}>
+        {cores.map((c) => (
+          <button key={c} onClick={() => setAvatarCor(c)} style={{
+            width: 26, height: 26, borderRadius: '50%', background: c, border: avatarCor === c ? '2px solid #fff' : 'none',
+            boxShadow: avatarCor === c ? `0 0 0 2px ${c}` : 'none', cursor: 'pointer',
+          }} />
+        ))}
+      </div>
+
+      <label style={{ fontSize: 12, color: muted, display: 'block', marginBottom: 6 }}>Seu nome</label>
+      <input value={nome} onChange={(e) => { setNome(e.target.value); setAvatarLetra(e.target.value.trim()[0]?.toUpperCase() || ''); }}
+        placeholder="Ex: Lucas" autoFocus
+        style={{ width: '100%', border: `1px solid rgba(14,79,69,0.15)`, borderRadius: 14, padding: '14px 16px', fontSize: 15, outline: 'none', marginBottom: 28, fontFamily: 'inherit', boxSizing: 'border-box' }} />
+
+      <button onClick={avancar} disabled={!nome.trim()} style={{
+        width: '100%', background: nome.trim() ? primary : 'rgba(14,79,69,0.25)', color: '#fff', border: 'none', borderRadius: 16,
+        padding: '15px 0', fontSize: 14, fontWeight: 600, cursor: nome.trim() ? 'pointer' : 'not-allowed',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, transition: 'background 0.2s',
+      }}>
+        Continuar <ArrowRight size={15} />
+      </button>
+    </div>
+  );
+}
+
+function OnboardingStep2({ nome, codigo, carregandoCodigo, avancar, pular }) {
+  const [copiado, setCopiado] = useState(false);
+  const celulas = useMemo(() => gerarPadraoQR(codigo || 'RAIZ-CARREGANDO'), [codigo]);
+  const tam = 11, px = 14;
+
+  const copiar = () => { navigator.clipboard?.writeText(codigo || ''); setCopiado(true); setTimeout(() => setCopiado(false), 1800); };
+  const linkWhats = `https://wa.me/?text=${encodeURIComponent(`${nome} te chamou pro Raiz — nosso painel financeiro compartilhado. Entra com o código ${codigo || ''} 🌱`)}`;
+
+  return (
+    <div style={{ animation: 'fadeSlide 0.4s ease' }}>
+      <div style={{ fontSize: 11, fontWeight: 600, color: muted, letterSpacing: 0.5, marginBottom: 6 }}>PASSO 2 DE 3</div>
+      <div className="voice" style={{ fontSize: 26, fontWeight: 500, color: ink, marginBottom: 6 }}>Chame seu parceiro</div>
+      <div style={{ fontSize: 13, color: muted, marginBottom: 24, lineHeight: 1.5 }}>Peça pra ele escanear, ou mande o link direto.</div>
+
+      <div style={{
+        borderRadius: 24, padding: 24, background: `linear-gradient(155deg, ${primaryDeep}, ${primary})`, position: 'relative', overflow: 'hidden',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 18,
+      }}>
+        <div style={{ position: 'absolute', inset: 0, backgroundImage: `url("${noiseUrl}")`, opacity: 0.05, mixBlendMode: 'overlay' }} />
+        <div style={{ background: '#fff', borderRadius: 16, padding: 14, marginBottom: 16 }}>
+          <svg width={tam * px} height={tam * px}>
+            {celulas.filter((c) => c.ativo).map((c, i) => (
+              <rect key={i} x={c.x * px} y={c.y * px} width={px - 1.5} height={px - 1.5} fill={ink} rx={2} />
+            ))}
+            <FinderPattern x={0} y={0} size={px} />
+            <FinderPattern x={(tam - 3) * px} y={0} size={px} />
+            <FinderPattern x={0} y={(tam - 3) * px} size={px} />
+          </svg>
+        </div>
+        <div style={{ color: '#fff', fontSize: 11, opacity: 0.75, marginBottom: 6 }}>ou use o código</div>
+        <button onClick={copiar} disabled={carregandoCodigo} style={{
+          background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.25)', borderRadius: 12, padding: '10px 18px',
+          display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer',
+        }}>
+          <span className="voice" style={{ color: '#fff', fontSize: 17, letterSpacing: 1.5 }}>{carregandoCodigo ? 'gerando...' : codigo}</span>
+          {copiado ? <Check size={15} color={gold} /> : <Copy size={14} color="rgba(255,255,255,0.7)" />}
+        </button>
+      </div>
+
+      <a href={linkWhats} target="_blank" rel="noreferrer" style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: '#25D366', color: '#fff', textDecoration: 'none',
+        borderRadius: 16, padding: '14px 0', fontSize: 14, fontWeight: 600, marginBottom: 12,
+      }}>
+        <MessageCircle size={17} /> Enviar convite pelo WhatsApp
+      </a>
+
+      <button onClick={avancar} disabled={carregandoCodigo} style={{ width: '100%', background: primary, border: 'none', color: '#fff', borderRadius: 14, padding: '13px 0', fontSize: 13, fontWeight: 600, cursor: 'pointer', marginBottom: 8, opacity: carregandoCodigo ? 0.6 : 1 }}>
+        Continuar
+      </button>
+      <button onClick={pular} disabled={carregandoCodigo} style={{ width: '100%', background: 'transparent', border: 'none', color: muted, fontSize: 12.5, cursor: carregandoCodigo ? 'default' : 'pointer', textDecoration: 'underline', opacity: carregandoCodigo ? 0.5 : 1 }}>
+        {carregandoCodigo ? 'Preparando sua conta...' : 'Prefiro usar sozinho por enquanto'}
+      </button>
+    </div>
+  );
+}
+
+function OnboardingStep3({ avatarCor, avatarLetra, codigo, finalizar }) {
+  const [fase, setFase] = useState(0);
+
+  useEffect(() => {
+    const t = setTimeout(() => setFase(1), 700);
+    return () => clearTimeout(t);
+  }, []);
+
+  return (
+    <div style={{ animation: 'fadeSlide 0.4s ease', textAlign: 'center', paddingTop: 20 }}>
+      <div style={{ position: 'relative', height: 110, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 24 }}>
+        <div style={{
+          width: 80, height: 80, borderRadius: '50%', background: avatarCor, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 28, fontWeight: 700, color: '#fff', position: 'relative',
+          boxShadow: `0 10px 24px -6px ${avatarCor}88`,
+        }}>
+          {avatarLetra || '?'}
+          {fase === 1 && (
+            <div style={{
+              position: 'absolute', bottom: -4, right: -4, width: 30, height: 30, borderRadius: '50%', background: gold,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'popIn 0.4s cubic-bezier(.34,1.56,.64,1) both',
+              boxShadow: '0 6px 16px -4px rgba(201,164,106,0.7)', border: '2px solid #fff',
+            }}>
+              <Check size={15} color="#fff" strokeWidth={3} />
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="voice" style={{ fontSize: 22, fontWeight: 500, color: ink, marginBottom: 8, opacity: fase === 1 ? 1 : 0, transition: 'opacity 0.4s ease 0.2s' }}>
+        Seu perfil está pronto 🌱
+      </div>
+      <div style={{ fontSize: 13, color: muted, marginBottom: 20, lineHeight: 1.5, opacity: fase === 1 ? 1 : 0, transition: 'opacity 0.4s ease 0.3s' }}>
+        Você já pode começar a usar. Quando seu parceiro entrar com o código <b>{codigo}</b>, vocês passam a ver tudo juntos, automaticamente.
+      </div>
+
+      <button onClick={finalizar} disabled={fase === 0} style={{
+        width: '100%', background: fase === 1 ? primary : 'rgba(14,79,69,0.2)', color: '#fff', border: 'none', borderRadius: 16,
+        padding: '15px 0', fontSize: 14, fontWeight: 600, cursor: fase === 1 ? 'pointer' : 'default',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, opacity: fase === 1 ? 1 : 0, transition: 'opacity 0.4s ease 0.4s, background 0.2s',
+      }}>
+        <Sparkles size={15} /> Ir para o Raiz
+      </button>
+    </div>
+  );
+}
+
+function OnboardingRaiz({ userId, onFinish }) {
+  const [step, setStep] = useState(1);
+  const [nome, setNome] = useState('');
+  const [avatarLetra, setAvatarLetra] = useState('');
+  const [avatarCor, setAvatarCor] = useState(lucas);
+  const [householdId, setHouseholdId] = useState(null);
+  const [codigo, setCodigo] = useState(null);
+  const [carregandoCodigo, setCarregandoCodigo] = useState(false);
+  const [erroOnboarding, setErroOnboarding] = useState('');
+
+  const salvarPerfilEAvancar = async () => {
+    setErroOnboarding('');
+    const { error } = await window.db.from('profiles').upsert({ id: userId, nome, avatar_cor: avatarCor, avatar_letra: avatarLetra });
+    if (error) { setErroOnboarding('Erro ao salvar perfil: ' + error.message); return; }
+    setStep(2);
+    criarHousehold();
+  };
+
+  const criarHousehold = async () => {
+    setCarregandoCodigo(true);
+    setErroOnboarding('');
+    const novoCodigo = 'RAIZ-' + Math.random().toString(36).slice(2, 7).toUpperCase();
+    const { data, error } = await window.db.from('households').insert({ codigo_convite: novoCodigo }).select().single();
+    if (error) {
+      setErroOnboarding('Erro ao criar a "casa": ' + error.message);
+      setCarregandoCodigo(false);
+      return;
+    }
+    const { error: erroUpdate } = await window.db.from('profiles').update({ household_id: data.id }).eq('id', userId);
+    if (erroUpdate) {
+      setErroOnboarding('Erro ao vincular seu perfil: ' + erroUpdate.message);
+      setCarregandoCodigo(false);
+      return;
+    }
+    setHouseholdId(data.id);
+    setCodigo(novoCodigo);
+    setCarregandoCodigo(false);
+  };
+
+  return (
+    <div style={{ fontFamily: 'Inter, sans-serif', background: bg, minHeight: 640, borderRadius: 26, padding: '36px 26px', maxWidth: 400, margin: '0 auto', border: '1px solid rgba(14,79,69,0.08)' }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500&family=Inter:wght@400;500;600;700&display=swap');
+        .voice { font-family: 'Fraunces', serif; }
+        @keyframes fadeSlide { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+        @keyframes popIn { from { transform: scale(0); } to { transform: scale(1); } }
+        @keyframes burstOut {
+          from { transform: rotate(var(--ang)) translateX(0); opacity: 1; }
+          to { transform: rotate(var(--ang)) translateX(46px); opacity: 0; }
+        }
+      `}</style>
+
+      <div style={{ display: 'flex', gap: 6, marginBottom: 24 }}>
+        {[1, 2, 3].map((s) => (
+          <div key={s} style={{ flex: 1, height: 3, borderRadius: 2, background: s <= step ? primary : 'rgba(14,79,69,0.12)', transition: 'background 0.3s' }} />
+        ))}
+      </div>
+
+      {erroOnboarding && (
+        <div style={{ background: '#F6E8E2', color: '#C1694F', borderRadius: 12, padding: '12px 14px', fontSize: 12.5, marginBottom: 20, lineHeight: 1.5 }}>
+          {erroOnboarding}
+          <button onClick={criarHousehold} style={{ display: 'block', marginTop: 8, background: 'none', border: 'none', color: '#C1694F', textDecoration: 'underline', cursor: 'pointer', fontSize: 12, fontWeight: 600, padding: 0 }}>
+            Tentar de novo
+          </button>
+        </div>
+      )}
+
+      {step === 1 && (
+        <OnboardingStep1 nome={nome} setNome={setNome} avatarLetra={avatarLetra} setAvatarLetra={setAvatarLetra}
+          avatarCor={avatarCor} setAvatarCor={setAvatarCor} avancar={salvarPerfilEAvancar} />
+      )}
+      {step === 2 && (
+        <OnboardingStep2 nome={nome} codigo={codigo} carregandoCodigo={carregandoCodigo}
+          avancar={() => setStep(3)} pular={() => householdId && onFinish(householdId)} />
+      )}
+      {step === 3 && (
+        <OnboardingStep3 avatarCor={avatarCor} avatarLetra={avatarLetra} codigo={codigo} finalizar={() => onFinish(householdId)} />
+      )}
+    </div>
+  );
+}
+
+// ============================================================================
+// AUTENTICAÇÃO — login/cadastro real com Supabase, antes de tudo
+// ============================================================================
+function AuthGate() {
+  const [sessao, setSessao] = useState(undefined); // undefined = checando, null = deslogado
+  const [modoCadastro, setModoCadastro] = useState(true);
+  const [email, setEmail] = useState('');
+  const [senha, setSenha] = useState('');
+  const [erroAuth, setErroAuth] = useState('');
+  const [carregando, setCarregando] = useState(false);
+
+  useEffect(() => {
+    window.db.auth.getSession().then(({ data }) => setSessao(data.session || null));
+    const { data: listener } = window.db.auth.onAuthStateChange((_evt, session) => setSessao(session));
+    return () => listener.subscription.unsubscribe();
+  }, []);
+
+  const enviar = async () => {
+    setErroAuth(''); setCarregando(true);
+    const acao = modoCadastro ? window.db.auth.signUp({ email, password: senha }) : window.db.auth.signInWithPassword({ email, password: senha });
+    const { error } = await acao;
+    if (error) setErroAuth(error.message);
+    setCarregando(false);
+  };
+
+  if (sessao === undefined) {
+    return <div style={{ textAlign: 'center', padding: 60, color: muted, fontFamily: 'Inter, sans-serif' }}>Carregando...</div>;
+  }
+
+  if (!sessao) {
+    return (
+      <div style={{ fontFamily: 'Inter, sans-serif', background: bg, minHeight: 640, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+        <style>{`
+          @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500&family=Inter:wght@400;500;600;700&display=swap');
+          .voice { font-family: 'Fraunces', serif; }
+          @keyframes fadeSlide { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+          .auth-input { width: 100%; border: 1px solid rgba(14,79,69,0.15); border-radius: 14px; padding: 13px 16px 13px 42px; font-size: 14px; outline: none; font-family: inherit; box-sizing: border-box; background: #fff; }
+          .auth-input:focus { border-color: ${primary}; }
+          .auth-tab { flex: 1; padding: 9px 0; border-radius: 12px; border: none; cursor: pointer; font-size: 13px; font-weight: 600; }
+          .auth-btn { width: 100%; background: ${primary}; color: #fff; border: none; border-radius: 16px; padding: 15px 0; font-size: 14px; font-weight: 600; cursor: pointer; box-shadow: 0 10px 26px rgba(14,79,69,0.28); transition: transform 0.2s; }
+          .auth-btn:active { transform: scale(0.98); }
+        `}</style>
+
+        <div style={{ width: '100%', maxWidth: 380, animation: 'fadeSlide 0.4s ease' }} className="glass">
+          <div style={{ borderRadius: '24px 24px 0 0', overflow: 'hidden' }}>
+            <div style={{
+              padding: '38px 28px 30px', textAlign: 'center', position: 'relative', overflow: 'hidden', color: '#fff',
+              background: `linear-gradient(155deg, ${primaryDeep} 0%, ${primary} 55%, #14685A 100%)`,
+            }}>
+              <div style={{ position: 'absolute', inset: 0, backgroundImage: `url("${noiseUrl}")`, opacity: 0.05, mixBlendMode: 'overlay' }} />
+              <div style={{ position: 'absolute', top: -50, right: -50, width: 180, height: 180, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,255,255,0.10), transparent 70%)' }} />
+              <div style={{ width: 52, height: 52, borderRadius: 16, background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
+                <Sprout size={26} color="#fff" strokeWidth={1.8} />
+              </div>
+              <div className="voice" style={{ fontSize: 26, fontWeight: 500, marginBottom: 4 }}>Raiz</div>
+              <div style={{ fontSize: 12.5, opacity: 0.75 }}>O painel financeiro que vocês olham juntos</div>
+            </div>
+          </div>
+
+          <div style={{ padding: '26px 26px 28px' }}>
+            <div style={{ display: 'flex', gap: 6, background: 'rgba(14,79,69,0.06)', borderRadius: 14, padding: 4, marginBottom: 22 }}>
+              <button className="auth-tab" onClick={() => setModoCadastro(true)} style={{ background: modoCadastro ? '#fff' : 'transparent', color: modoCadastro ? primary : muted, boxShadow: modoCadastro ? '0 2px 6px rgba(0,0,0,0.06)' : 'none' }}>Criar conta</button>
+              <button className="auth-tab" onClick={() => setModoCadastro(false)} style={{ background: !modoCadastro ? '#fff' : 'transparent', color: !modoCadastro ? primary : muted, boxShadow: !modoCadastro ? '0 2px 6px rgba(0,0,0,0.06)' : 'none' }}>Entrar</button>
+            </div>
+
+            <div style={{ position: 'relative', marginBottom: 12 }}>
+              <Mail size={16} color={muted} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)' }} />
+              <input className="auth-input" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="seu@email.com" type="email" />
+            </div>
+            <div style={{ position: 'relative', marginBottom: 18 }}>
+              <Lock size={16} color={muted} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)' }} />
+              <input className="auth-input" value={senha} onChange={(e) => setSenha(e.target.value)} placeholder="Senha (mín. 6 caracteres)" type="password" />
+            </div>
+
+            {erroAuth && (
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6, background: '#F6E8E2', color: '#C1694F', borderRadius: 12, padding: '10px 12px', fontSize: 12, marginBottom: 16 }}>
+                <AlertCircle size={14} style={{ flexShrink: 0, marginTop: 1 }} />{erroAuth}
+              </div>
+            )}
+
+            <button className="auth-btn" onClick={enviar} disabled={carregando} style={{ opacity: carregando ? 0.7 : 1 }}>
+              {carregando ? 'Aguarde...' : modoCadastro ? 'Criar minha conta' : 'Entrar'}
+            </button>
+
+            <div style={{ textAlign: 'center', fontSize: 11.5, color: muted, marginTop: 18, lineHeight: 1.5 }}>
+              {modoCadastro ? 'Seus dados ficam protegidos e visíveis só pra você e quem você convidar.' : 'Bom te ver de novo 🌱'}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return <RaizApp userId={sessao.user.id} />;
+}
+
+// ============================================================================
+// RAIZ APP — decide entre Onboarding (sem household ainda) e o app completo
+// ============================================================================
+function RaizApp({ userId }) {
+  const [perfil, setPerfil] = useState(undefined);
+
+  const buscarPerfil = () => {
+    window.db.from('profiles').select('*').eq('id', userId).maybeSingle().then(({ data }) => setPerfil(data));
+  };
+
+  useEffect(() => { buscarPerfil(); }, [userId]);
+
+  if (perfil === undefined) return <div style={{ textAlign: 'center', padding: 60, color: muted, fontFamily: 'Inter, sans-serif' }}>Carregando perfil...</div>;
+
+  if (!perfil || !perfil.household_id) {
+    return <OnboardingRaiz userId={userId} onFinish={() => buscarPerfil()} />;
+  }
+
+  return <AppPrincipal userId={userId} householdId={perfil.household_id} />;
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<AuthGate />);
+</script>
+
+<script>
+  const codigoFonte = document.getElementById('app-source').textContent;
+  let compilado;
+  try {
+    compilado = Babel.transform(codigoFonte, { presets: [['react', { runtime: 'classic' }]] }).code;
+    (0, eval)(compilado);
+  } catch (erro) {
+    const box = document.getElementById('erro-visivel');
+    box.style.display = 'block';
+    box.innerText = 'ERRO NA EXECUÇÃO: ' + erro.message + '\n\n' + (erro.stack || '') +
+      '\n\n--- INÍCIO DO CÓDIGO COMPILADO (primeiros 800 caracteres) ---\n' +
+      (compilado ? compilado.slice(0, 800) : '(Babel.transform falhou antes de gerar código)');
+  }
+</script>
+</body>
+</html>
